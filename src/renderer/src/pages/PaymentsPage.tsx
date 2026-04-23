@@ -51,6 +51,21 @@ export function PaymentsPage() {
 
   const suppliersById = useMemo(() => Object.fromEntries(suppliers.map((s) => [s.id, s])), [suppliers])
 
+  const buildShareMessage = async (payment: Payment) => {
+    if (!desktopApi) throw new Error('Essa ação exige o app desktop do ReciBox aberto.')
+    const supplier = suppliersById[payment.fornecedor_id]
+    if (!supplier) throw new Error('Fornecedor não encontrado.')
+    return {
+      supplier,
+      share: await desktopApi.buildShareMessage({
+        fornecedorNome: supplier.nome,
+        valor: Number(payment.valor),
+        descricao: payment.descricao,
+        confirmationToken: payment.confirmation_token
+      })
+    }
+  }
+
   async function submitPayment(e: FormEvent) {
     e.preventDefault()
     const parsed = paymentSchema.safeParse(form)
@@ -75,10 +90,7 @@ export function PaymentsPage() {
 
       const pendingWork = payments.filter((payment) => {
         if (!suppliersById[payment.fornecedor_id]) return false
-        if (payment.status === 'confirmado' && payment.confirmation_signature) {
-          return !payment.pdf_path || !payment.pdf_path.includes('-signed-')
-        }
-        return !payment.pdf_url
+        return payment.status === 'confirmado' && payment.confirmation_signature && (!payment.pdf_path || !payment.pdf_path.includes('-signed-'))
       })
 
       if (!pendingWork.length) return
@@ -124,38 +136,6 @@ export function PaymentsPage() {
                 confirmation_signature: payment.confirmation_signature,
                 confirmation_signer_name: payment.confirmation_signer_name,
                 confirmation_signer_document: payment.confirmation_signer_document
-              }
-            })
-            await supabase
-              .from('pagamentos')
-              .update({ pdf_url: result.pdfUrl, pdf_path: result.pdfPath })
-              .eq('id', payment.id)
-          } else {
-            const result = await desktopApi.generateReceipt({
-              accessToken,
-              userId,
-              supplier: {
-                id: supplier.id,
-                nome: supplier.nome,
-                cpf_cnpj: supplier.cpf_cnpj,
-                pix: supplier.pix
-              },
-              company: {
-                empresa_nome: settings.empresa_nome,
-                cnpj: settings.cnpj,
-                endereco: settings.endereco,
-                logo_url: settings.logo_url,
-                rodape: settings.rodape
-              },
-              payment: {
-                id: payment.id,
-                valor: Number(payment.valor),
-                descricao: payment.descricao,
-                forma_pagamento: payment.forma_pagamento,
-                data_pagamento: payment.data_pagamento,
-                obra: payment.obra,
-                confirmation_token: payment.confirmation_token,
-                fornecedor_id: payment.fornecedor_id
               }
             })
             await supabase
@@ -215,7 +195,7 @@ export function PaymentsPage() {
               <th className="px-4 py-3 text-left">Fornecedor</th>
               <th className="px-4 py-3 text-left">Valor</th>
               <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Recibo</th>
+              <th className="px-4 py-3 text-left">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -225,7 +205,56 @@ export function PaymentsPage() {
                 <td className="px-4 py-3">{currencyBRL(Number(p.valor))}</td>
                 <td className="px-4 py-3">{p.status}</td>
                 <td className="px-4 py-3">
-                  {p.pdf_url ? (
+                  {p.status === 'pendente' ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="rounded bg-slate-800 px-2 py-1 text-xs text-white"
+                        onClick={async () => {
+                          try {
+                            const { share } = await buildShareMessage(p)
+                            await navigator.clipboard.writeText(share.whatsappMessage)
+                            alert('Mensagem copiada com sucesso.')
+                          } catch (error) {
+                            alert(error instanceof Error ? error.message : 'Não foi possível copiar a mensagem.')
+                          }
+                        }}
+                      >
+                        Copiar mensagem
+                      </button>
+                      <button
+                        className="rounded bg-amber-500 px-2 py-1 text-xs text-white"
+                        onClick={async () => {
+                          try {
+                            const { supplier, share } = await buildShareMessage(p)
+                            if (!supplier.email) throw new Error('Fornecedor sem e-mail cadastrado.')
+                            await desktopApi?.openEmailClient({
+                              to: supplier.email,
+                              subject: share.emailSubject,
+                              body: share.emailMessage
+                            })
+                          } catch (error) {
+                            alert(error instanceof Error ? error.message : 'Não foi possível abrir o e-mail.')
+                          }
+                        }}
+                      >
+                        E-mail
+                      </button>
+                      <button
+                        className="rounded bg-emerald-600 px-2 py-1 text-xs text-white"
+                        onClick={async () => {
+                          try {
+                            const { share } = await buildShareMessage(p)
+                            await navigator.clipboard.writeText(share.link)
+                            alert('Link copiado com sucesso.')
+                          } catch (error) {
+                            alert(error instanceof Error ? error.message : 'Não foi possível copiar o link.')
+                          }
+                        }}
+                      >
+                        Copiar link
+                      </button>
+                    </div>
+                  ) : p.pdf_url ? (
                     <a className="text-blue-600" href={p.pdf_url} target="_blank" rel="noreferrer">Abrir recibo</a>
                   ) : isProcessing(p.id) ? (
                     <span className="text-slate-500">Gerando...</span>
