@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer'
-import type { GenerateReceiptPayload } from '@shared/ipc'
+import type { GenerateReceiptPayload, GenerateSignedReceiptPayload } from '@shared/ipc'
 
 const money = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -15,7 +15,16 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
 
-export const buildReceiptHtml = ({ company, supplier, payment }: GenerateReceiptPayload): string => {
+type SignedPayment = GenerateSignedReceiptPayload['payment']
+
+type ReceiptTemplateInput = {
+  company: GenerateReceiptPayload['company']
+  supplier: GenerateReceiptPayload['supplier']
+  payment: SignedPayment
+  signatureHtml?: string
+}
+
+const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }: ReceiptTemplateInput): string => {
   const logoMarkup = company.logo_url
     ? `<img src="${escapeHtml(company.logo_url)}" class="logo" alt="Logo empresa"/>`
     : `<div class="logo-fallback">${escapeHtml(company.empresa_nome.slice(0, 2).toUpperCase())}</div>`
@@ -74,12 +83,50 @@ export const buildReceiptHtml = ({ company, supplier, payment }: GenerateReceipt
       <div class="box"><div class="label">FORMA DE PAGAMENTO</div><div class="valor">${escapeHtml(payment.forma_pagamento)}</div></div>
       <div class="box"><div class="label">CHAVE PIX</div><div class="valor">${escapeHtml(supplier.pix ?? '-')}</div></div>
     </div>
+    ${signatureHtml}
     <div class="assinatura"><div class="linha"></div><div>${escapeHtml(supplier.nome)}</div></div>
     <div class="footer">${escapeHtml(company.endereco ?? 'Brasil')} - ${escapeHtml(longDate(payment.data_pagamento))}<br/>${escapeHtml(company.empresa_nome)} - ${escapeHtml(company.cnpj ?? '')}<br/>${escapeHtml(company.rodape ?? '')}</div>
     </div>
   </div>
 </body>
 </html>`
+}
+
+export const buildReceiptHtml = ({ company, supplier, payment }: GenerateReceiptPayload): string =>
+  buildReceiptDocument({
+    company,
+    supplier,
+    payment: {
+      ...payment,
+      confirmation_date: null,
+      confirmation_signature: null,
+      confirmation_signer_name: null,
+      confirmation_signer_document: null
+    }
+  })
+
+export const buildSignedReceiptHtml = ({ company, supplier, payment }: GenerateSignedReceiptPayload): string => {
+  const signatureDate = payment.confirmation_date
+    ? new Date(payment.confirmation_date).toLocaleString('pt-BR')
+    : '-'
+
+  return buildReceiptDocument({
+    company,
+    supplier,
+    payment,
+    signatureHtml: `
+      <div class="descricao" style="margin-top:16px;">
+        <div class="label">CONFIRMAÇÃO DE RECEBIMENTO (ASSINATURA ELETRÔNICA)</div>
+        <div class="descricao-box">
+          <div><strong>Status:</strong> CONFIRMADO</div>
+          <div><strong>Código da assinatura:</strong> ${escapeHtml(payment.confirmation_signature ?? '-')}</div>
+          <div><strong>Confirmado por:</strong> ${escapeHtml(payment.confirmation_signer_name ?? supplier.nome)}</div>
+          <div><strong>Documento:</strong> ${escapeHtml(payment.confirmation_signer_document ?? supplier.cpf_cnpj ?? '-')}</div>
+          <div><strong>Data/Hora da confirmação:</strong> ${escapeHtml(signatureDate)}</div>
+        </div>
+      </div>
+    `
+  })
 }
 
 export async function htmlToPdfBuffer(html: string): Promise<Buffer> {

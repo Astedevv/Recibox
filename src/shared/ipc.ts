@@ -36,6 +36,28 @@ export const GenerateReceiptPayloadSchema = z.object({
 
 export type GenerateReceiptPayload = z.infer<typeof GenerateReceiptPayloadSchema>
 
+export const ConfirmationSnapshotSchema = z.object({
+  confirmation_date: z.string().nullable(),
+  confirmation_signature: z.string().nullable(),
+  confirmation_signer_name: z.string().nullable(),
+  confirmation_signer_document: z.string().nullable()
+})
+
+export const GenerateSignedReceiptPayloadSchema = z.object({
+  accessToken: z.string().min(1),
+  userId: z.string().uuid(),
+  supplier: SupplierSnapshotSchema,
+  company: CompanySettingsSnapshotSchema,
+  payment: PaymentSnapshotSchema.extend({
+    confirmation_date: z.string().nullable(),
+    confirmation_signature: z.string().nullable(),
+    confirmation_signer_name: z.string().nullable(),
+    confirmation_signer_document: z.string().nullable()
+  })
+})
+
+export type GenerateSignedReceiptPayload = z.infer<typeof GenerateSignedReceiptPayloadSchema>
+
 export const ShareMessagePayloadSchema = z.object({
   fornecedorNome: z.string(),
   valor: z.number(),
@@ -68,6 +90,7 @@ export type ShareMessageResult = {
 
 export const IPC_CHANNELS = {
   generateReceipt: 'receipt:generate-and-upload',
+  generateSignedReceipt: 'receipt:generate-signed-and-upload',
   buildShareMessage: 'share:build-message',
   getEnv: 'app:get-env',
   openEmailClient: 'share:open-email-client'

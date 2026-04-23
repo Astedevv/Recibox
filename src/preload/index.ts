@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import {
+  type GenerateSignedReceiptPayload,
   type GenerateReceiptPayload,
   type GenerateReceiptResult,
   type OpenEmailPayload,
@@ -9,6 +10,7 @@ import {
 
 const IPC_CHANNELS = {
   generateReceipt: 'receipt:generate-and-upload',
+  generateSignedReceipt: 'receipt:generate-signed-and-upload',
   buildShareMessage: 'share:build-message',
   getEnv: 'app:get-env',
   openEmailClient: 'share:open-email-client'
@@ -17,6 +19,9 @@ const IPC_CHANNELS = {
 const api = {
   generateReceipt(payload: GenerateReceiptPayload): Promise<GenerateReceiptResult> {
     return ipcRenderer.invoke(IPC_CHANNELS.generateReceipt, payload)
+  },
+  generateSignedReceipt(payload: GenerateSignedReceiptPayload): Promise<GenerateReceiptResult> {
+    return ipcRenderer.invoke(IPC_CHANNELS.generateSignedReceipt, payload)
   },
   buildShareMessage(payload: ShareMessagePayload): Promise<ShareMessageResult> {
     return ipcRenderer.invoke(IPC_CHANNELS.buildShareMessage, payload)

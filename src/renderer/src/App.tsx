@@ -7,6 +7,7 @@ import { SuppliersPage } from '@/pages/SuppliersPage'
 import { PaymentsPage } from '@/pages/PaymentsPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { ReportsPage } from '@/pages/ReportsPage'
 import { ConfirmReceiptPage } from '@/pages/ConfirmReceiptPage'
 
 function PrivateRoutes() {
@@ -17,6 +18,7 @@ function PrivateRoutes() {
         <Route path="/fornecedores" element={<SuppliersPage />} />
         <Route path="/pagamentos" element={<PaymentsPage />} />
         <Route path="/historico" element={<HistoryPage />} />
+        <Route path="/relatorios" element={<ReportsPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

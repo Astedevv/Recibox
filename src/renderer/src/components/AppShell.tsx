@@ -1,4 +1,4 @@
-import { Home, Users, Receipt, History, Settings, LogOut } from 'lucide-react'
+import { Home, Users, Receipt, History, Settings, LogOut, FileSpreadsheet } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
@@ -6,6 +6,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: Home },
   { to: '/fornecedores', label: 'Fornecedores', icon: Users },
   { to: '/pagamentos', label: 'Pagamentos', icon: Receipt },
+  { to: '/relatorios', label: 'Relatórios', icon: FileSpreadsheet },
   { to: '/historico', label: 'Histórico', icon: History },
   { to: '/configuracoes', label: 'Configurações', icon: Settings }
 ]
