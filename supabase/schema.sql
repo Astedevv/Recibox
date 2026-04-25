@@ -22,6 +22,7 @@ create table if not exists public.configuracoes (
   logo_url text,
   rodape text,
   tema text default 'blue-orange',
+  confirmation_base_url text,
   created_at timestamptz not null default now()
 );
 
@@ -64,6 +65,7 @@ create table if not exists public.confirmacoes (
 alter table public.pagamentos add column if not exists confirmation_signature text;
 alter table public.pagamentos add column if not exists confirmation_signer_name text;
 alter table public.pagamentos add column if not exists confirmation_signer_document text;
+alter table public.configuracoes add column if not exists confirmation_base_url text;
 
 alter table public.confirmacoes add column if not exists signer_name text;
 alter table public.confirmacoes add column if not exists signer_document text;
@@ -147,8 +149,10 @@ set search_path = public
 as $$
 declare
   v_payment_id uuid;
+  v_payment_date date;
   v_signature_code text;
   v_existing_signature text;
+  v_existing_payment_date date;
 begin
   if coalesce(trim(p_signer_name), '') = '' then
     return 'Informe o nome de quem está confirmando o recebimento.';
@@ -162,7 +166,7 @@ begin
     return 'É necessário aceitar a declaração de confirmação.';
   end if;
 
-  v_signature_code := upper(substring(encode(digest(p_token || '|' || now()::text || '|' || coalesce(p_signer_document, ''), 'sha256'), 'hex') from 1 for 16));
+  v_signature_code := upper(substring(encode(extensions.digest(p_token || '|' || now()::text || '|' || coalesce(p_signer_document, ''), 'sha256'), 'hex') from 1 for 16));
 
   update public.pagamentos
   set status = 'confirmado',
@@ -172,7 +176,7 @@ begin
       confirmation_signer_document = p_signer_document
   where confirmation_token = p_token
     and status <> 'confirmado'
-  returning id into v_payment_id;
+  returning id, data_pagamento into v_payment_id, v_payment_date;
 
   if v_payment_id is not null then
     insert into public.confirmacoes(
@@ -206,6 +210,10 @@ begin
         signer_phone = excluded.signer_phone,
         signer_metadata = excluded.signer_metadata,
         signature_code = excluded.signature_code;
+    if v_payment_date > current_date then
+      return 'Operação faturada com ciência registrada com sucesso. O pagamento será realizado na data prevista no recibo. Assinatura: ' || v_signature_code;
+    end if;
+
     return 'Recebimento confirmado com sucesso. Assinatura: ' || v_signature_code;
   end if;
 
@@ -213,12 +221,15 @@ begin
     return 'Token inválido.';
   end if;
 
-  select confirmation_signature into v_existing_signature
+  select confirmation_signature, data_pagamento into v_existing_signature, v_existing_payment_date
   from public.pagamentos
   where confirmation_token = p_token
   limit 1;
 
   if v_existing_signature is not null then
+    if v_existing_payment_date > current_date then
+      return 'Operação faturada já estava com ciência confirmada. Assinatura: ' || v_existing_signature;
+    end if;
     return 'Pagamento já estava confirmado. Assinatura: ' || v_existing_signature;
   end if;
 

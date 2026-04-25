@@ -60,9 +60,18 @@ export type GenerateSignedReceiptPayload = z.infer<typeof GenerateSignedReceiptP
 
 export const ShareMessagePayloadSchema = z.object({
   fornecedorNome: z.string(),
+  fornecedorDocumento: z.string().nullable().optional(),
+  fornecedorPix: z.string().nullable().optional(),
   valor: z.number(),
   descricao: z.string(),
-  confirmationToken: z.string()
+  obra: z.string().nullable().optional(),
+  formaPagamento: z.string().nullable().optional(),
+  dataPagamento: z.string(),
+  empresaNome: z.string(),
+  empresaCnpj: z.string().nullable().optional(),
+  empresaEndereco: z.string().nullable().optional(),
+  confirmationToken: z.string(),
+  confirmationBaseUrl: z.string().optional()
 })
 
 export type ShareMessagePayload = z.infer<typeof ShareMessagePayloadSchema>

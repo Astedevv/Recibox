@@ -16,12 +16,13 @@ const { ipcMain, shell } = require('electron') as typeof import('electron')
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY
-const CONFIRMATION_BASE_URL = process.env.VITE_CONFIRMATION_BASE_URL || 'recibox://confirm'
+const DEFAULT_CONFIRMATION_BASE_URL = 'https://recibox-sigma.vercel.app'
+const CONFIRMATION_BASE_URL = process.env.VITE_CONFIRMATION_BASE_URL || DEFAULT_CONFIRMATION_BASE_URL
 
 const normalizeConfirmationBaseUrl = (rawUrl: string) => {
   const trimmed = rawUrl.trim().replace(/\/$/, '')
-  if (!trimmed) return 'recibox://confirm'
-  if (trimmed.startsWith('recibox://')) return trimmed
+  if (!trimmed) return `${DEFAULT_CONFIRMATION_BASE_URL}/#/confirm`
+  if (trimmed.startsWith('recibox://')) return `${DEFAULT_CONFIRMATION_BASE_URL}/#/confirm`
   if (trimmed.includes('#/confirm')) return trimmed
   if (trimmed.endsWith('/confirm')) return trimmed
   return `${trimmed}/#/confirm`
@@ -30,6 +31,72 @@ const normalizeConfirmationBaseUrl = (rawUrl: string) => {
 const buildConfirmationLink = (token: string) => {
   const base = normalizeConfirmationBaseUrl(CONFIRMATION_BASE_URL)
   return `${base.replace(/\/$/, '')}/${token}`
+}
+
+const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+const humanDate = (value: string) =>
+  new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const localIsoDate = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+const isFuturePaymentDate = (value: string) => value > localIsoDate()
+
+const compact = (value?: string | null) => (value && value.trim() ? value.trim() : 'Não informado')
+
+const buildShareBody = (params: {
+  fornecedorNome: string
+  fornecedorDocumento?: string | null
+  fornecedorPix?: string | null
+  valor: number
+  descricao: string
+  obra?: string | null
+  formaPagamento?: string | null
+  dataPagamento: string
+  empresaNome: string
+  empresaCnpj?: string | null
+  empresaEndereco?: string | null
+  link: string
+}) => {
+  const scheduledPayment = isFuturePaymentDate(params.dataPagamento)
+  const paymentDateLabel = humanDate(params.dataPagamento)
+  const operationTypeLabel = scheduledPayment
+    ? 'FATURADA (pagamento futuro com liquidação na data prevista)'
+    : 'NÃO FATURADA (pagamento previsto para execução imediata)'
+  const lines = [
+    `Olá, ${params.fornecedorNome}!`,
+    '',
+    scheduledPayment
+      ? 'Segue abaixo o resumo formal da operação faturada:'
+      : 'Segue abaixo o resumo formal do pagamento registrado:',
+    '',
+    `Empresa: ${params.empresaNome}`,
+    `CNPJ: ${compact(params.empresaCnpj)}`,
+    `Endereço: ${compact(params.empresaEndereco)}`,
+    `Fornecedor: ${params.fornecedorNome}`,
+    `Documento do fornecedor: ${compact(params.fornecedorDocumento)}`,
+    `Chave PIX: ${compact(params.fornecedorPix)}`,
+    `Valor: ${money(params.valor)}`,
+    `Tipo da operação: ${operationTypeLabel}`,
+    `Data prevista de pagamento: ${paymentDateLabel}`,
+    `Forma de pagamento: ${compact(params.formaPagamento)}`,
+    `Obra/Projeto: ${compact(params.obra)}`,
+    `Descrição: ${params.descricao}`,
+    '',
+    ...(scheduledPayment
+      ? [
+          'Esta operação é faturada e será liquidada somente na data prevista no recibo.',
+          'Use o link abaixo para confirmar ciência da operação faturada:'
+        ]
+      : ['Confirme o recebimento acessando o link abaixo:']),
+    params.link,
+    '',
+    ...(scheduledPayment
+      ? ['Após a confirmação de ciência, o comprovante eletrônico ficará disponível automaticamente.']
+      : ['Após a confirmação, o recibo assinado ficará disponível automaticamente.']),
+    '',
+    'Atenciosamente,',
+    `Equipe ${params.empresaNome}`
+  ]
+  return lines.join('\n')
 }
 
 const getAuthClient = (accessToken: string) => {
@@ -76,17 +143,13 @@ export function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.buildShareMessage, async (_event, payload): Promise<ShareMessageResult> => {
     const input = ShareMessagePayloadSchema.parse(payload)
-    const link = buildConfirmationLink(input.confirmationToken)
-    const value = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(input.valor)
-    const whatsappMessage =
-      `Olá, ${input.fornecedorNome}! Pagamento realizado no valor de ${value}.` +
-      `\nDescrição: ${input.descricao}\nConfirme o recebimento: ${link}`
-    const emailSubject = 'Confirmação de recebimento de pagamento'
-    const emailMessage = `Olá, ${input.fornecedorNome}.\n\n` +
-      `Informamos que o seu pagamento no valor de ${value} foi registrado com sucesso.\n` +
-      `Descrição: ${input.descricao}\n\n` +
-      `Para confirmar o recebimento, acesse o link abaixo:\n${link}\n\n` +
-      'Atenciosamente,\nEquipe Financeira'
+    const base = normalizeConfirmationBaseUrl(input.confirmationBaseUrl ?? CONFIRMATION_BASE_URL)
+    const link = `${base.replace(/\/$/, '')}/${input.confirmationToken}`
+    const whatsappMessage = buildShareBody({ ...input, link })
+    const emailSubject = isFuturePaymentDate(input.dataPagamento)
+      ? `Confirmação de ciência de operação faturada - ${input.empresaNome}`
+      : `Confirmação de recebimento - ${input.empresaNome}`
+    const emailMessage = whatsappMessage
     return { link, whatsappMessage, emailMessage, emailSubject }
   })
 

@@ -60,4 +60,5 @@ export type CompanySettings = {
   logo_url: string | null
   rodape: string | null
   tema: string | null
+  confirmation_base_url: string | null
 }

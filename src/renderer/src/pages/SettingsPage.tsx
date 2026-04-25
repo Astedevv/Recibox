@@ -8,7 +8,8 @@ const schema = z.object({
   endereco: z.string().optional(),
   logo_url: z.string().url().optional().or(z.literal('')),
   rodape: z.string().optional(),
-  tema: z.string().optional()
+  tema: z.string().optional(),
+  confirmation_base_url: z.string().url().optional().or(z.literal(''))
 })
 
 export function SettingsPage() {
@@ -19,7 +20,8 @@ export function SettingsPage() {
     endereco: '',
     logo_url: '',
     rodape: '',
-    tema: 'blue-orange'
+    tema: 'blue-orange',
+    confirmation_base_url: ''
   })
 
   useEffect(() => {
@@ -34,7 +36,8 @@ export function SettingsPage() {
           endereco: row.endereco ?? '',
           logo_url: row.logo_url ?? '',
           rodape: row.rodape ?? '',
-          tema: row.tema ?? 'blue-orange'
+          tema: row.tema ?? 'blue-orange',
+          confirmation_base_url: row.confirmation_base_url ?? ''
         })
       }
     }
@@ -51,7 +54,8 @@ export function SettingsPage() {
       endereco: form.endereco || null,
       logo_url: form.logo_url || null,
       rodape: form.rodape || null,
-      tema: form.tema
+      tema: form.tema,
+      confirmation_base_url: form.confirmation_base_url || null
     }
     if (settings) {
       await supabase.from('configuracoes').update(payload).eq('id', settings.id)
@@ -70,6 +74,7 @@ export function SettingsPage() {
         <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="Endereço" value={form.endereco} onChange={(e) => setForm((f) => ({ ...f, endereco: e.target.value }))} />
         <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="URL da logo" value={form.logo_url} onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))} />
         <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="Rodapé" value={form.rodape} onChange={(e) => setForm((f) => ({ ...f, rodape: e.target.value }))} />
+        <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="URL pública de confirmação" value={form.confirmation_base_url} onChange={(e) => setForm((f) => ({ ...f, confirmation_base_url: e.target.value }))} />
         <input className="rounded-xl border px-3 py-2" placeholder="Tema" value={form.tema} onChange={(e) => setForm((f) => ({ ...f, tema: e.target.value }))} />
         <div className="col-span-2">
           <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">Salvar</button>

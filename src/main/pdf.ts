@@ -6,6 +6,9 @@ const money = (value: number) =>
 
 const longDate = (isoDate: string) =>
   new Date(isoDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+const localIsoDate = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+const isFuturePaymentDate = (isoDate: string) => isoDate > localIsoDate()
 
 const escapeHtml = (value: string) =>
   value
@@ -25,6 +28,8 @@ type ReceiptTemplateInput = {
 }
 
 const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }: ReceiptTemplateInput): string => {
+  const scheduledPayment = isFuturePaymentDate(payment.data_pagamento)
+  const operationTypeLabel = scheduledPayment ? 'FATURADA' : 'NÃO FATURADA'
   const logoMarkup = company.logo_url
     ? `<img src="${escapeHtml(company.logo_url)}" class="logo" alt="Logo empresa"/>`
     : `<div class="logo-fallback">${escapeHtml(company.empresa_nome.slice(0, 2).toUpperCase())}</div>`
@@ -52,6 +57,7 @@ const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }
   .valor-destaque { margin-top:16px; background: linear-gradient(180deg, #fffbeb, #fef3c7); border:1px solid #f59e0b; padding:14px; border-radius:10px; font-size:24px; text-align:right; font-weight:700; color:#1f2937; }
   .descricao { margin-top:18px; }
   .descricao-box { background:#f8fafc; padding:15px; border-radius:10px; min-height:80px; border: 1px solid #e2e8f0; }
+  .alerta-programado { margin-top:12px; border-radius:10px; border:1px solid #f59e0b; background:#fffbeb; padding:12px; font-size:12px; line-height:1.5; color:#92400e; }
   .assinatura { margin-top:42px; text-align:center; }
   .linha { width:300px; border-top:1px solid #0f172a; margin:0 auto 5px; }
   .footer { margin-top:28px; text-align:center; font-size:12px; color:#475569; line-height: 1.6; }
@@ -75,13 +81,16 @@ const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }
       <div class="box"><div class="label">CNPJ</div><div class="valor">${escapeHtml(company.cnpj ?? '-')}</div></div>
     </div>
     <div class="valor-destaque">${money(payment.valor)}</div>
+    ${scheduledPayment ? `<div class="alerta-programado"><strong>Pagamento programado:</strong> este valor será liquidado somente em <strong>${escapeHtml(longDate(payment.data_pagamento))}</strong>. Este documento registra o compromisso/ciência até a data prevista.</div>` : ''}
     <div class="descricao">
       <div class="label">REFERENTE A</div>
       <div class="descricao-box">${escapeHtml(payment.descricao)}</div>
     </div>
     <div class="grid" style="margin-top:18px;">
       <div class="box"><div class="label">FORMA DE PAGAMENTO</div><div class="valor">${escapeHtml(payment.forma_pagamento)}</div></div>
+      <div class="box"><div class="label">TIPO DA OPERAÇÃO</div><div class="valor">${operationTypeLabel}</div></div>
       <div class="box"><div class="label">CHAVE PIX</div><div class="valor">${escapeHtml(supplier.pix ?? '-')}</div></div>
+      <div class="box"><div class="label">DATA PREVISTA DE PAGAMENTO</div><div class="valor">${escapeHtml(longDate(payment.data_pagamento))}</div></div>
     </div>
     ${signatureHtml}
     <div class="assinatura"><div class="linha"></div><div>${escapeHtml(supplier.nome)}</div></div>
@@ -106,6 +115,7 @@ export const buildReceiptHtml = ({ company, supplier, payment }: GenerateReceipt
   })
 
 export const buildSignedReceiptHtml = ({ company, supplier, payment }: GenerateSignedReceiptPayload): string => {
+  const scheduledPayment = isFuturePaymentDate(payment.data_pagamento)
   const signatureDate = payment.confirmation_date
     ? new Date(payment.confirmation_date).toLocaleString('pt-BR')
     : '-'
@@ -116,9 +126,10 @@ export const buildSignedReceiptHtml = ({ company, supplier, payment }: GenerateS
     payment,
     signatureHtml: `
       <div class="descricao" style="margin-top:16px;">
-        <div class="label">CONFIRMAÇÃO DE RECEBIMENTO (ASSINATURA ELETRÔNICA)</div>
+        <div class="label">${scheduledPayment ? 'CONFIRMAÇÃO DE CIÊNCIA (PAGAMENTO PROGRAMADO)' : 'CONFIRMAÇÃO DE RECEBIMENTO (ASSINATURA ELETRÔNICA)'}</div>
         <div class="descricao-box">
-          <div><strong>Status:</strong> CONFIRMADO</div>
+          <div><strong>Status:</strong> ${scheduledPayment ? 'OPERAÇÃO FATURADA - CIÊNCIA REGISTRADA' : 'CONFIRMADO'}</div>
+          ${scheduledPayment ? `<div><strong>Liquidação prevista:</strong> ${escapeHtml(longDate(payment.data_pagamento))}</div>` : ''}
           <div><strong>Código da assinatura:</strong> ${escapeHtml(payment.confirmation_signature ?? '-')}</div>
           <div><strong>Confirmado por:</strong> ${escapeHtml(payment.confirmation_signer_name ?? supplier.nome)}</div>
           <div><strong>Documento:</strong> ${escapeHtml(payment.confirmation_signer_document ?? supplier.cpf_cnpj ?? '-')}</div>

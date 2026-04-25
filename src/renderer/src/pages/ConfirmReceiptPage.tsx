@@ -3,6 +3,12 @@ import { useParams } from 'react-router-dom'
 import { currencyBRL } from '@/lib/utils'
 import { supabase, type ConfirmationPreview } from '@/lib/supabase'
 
+const localIsoDate = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+const humanDate = (isoDate: string) =>
+  new Date(`${isoDate}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
 export function ConfirmReceiptPage() {
   const { token } = useParams()
   const [loading, setLoading] = useState(false)
@@ -14,6 +20,9 @@ export function ConfirmReceiptPage() {
   const [signerEmail, setSignerEmail] = useState('')
   const [signerPhone, setSignerPhone] = useState('')
   const [consent, setConsent] = useState(false)
+  const isScheduledPayment = Boolean(preview?.data_pagamento && preview.data_pagamento > localIsoDate())
+  const paymentDateLabel = preview?.data_pagamento ? humanDate(preview.data_pagamento) : '-'
+  const operationTypeLabel = isScheduledPayment ? 'FATURADA' : 'NÃO FATURADA'
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -74,7 +83,7 @@ export function ConfirmReceiptPage() {
       p_consent: consent
     })
     if (error) setMessage(error.message)
-    else setMessage((data as string) || 'Confirmado com sucesso.')
+    else setMessage((data as string) || (isScheduledPayment ? 'Ciência do agendamento registrada com sucesso.' : 'Confirmado com sucesso.'))
     setPreview((prev) => (prev ? {
       ...prev,
       status: 'confirmado',
@@ -95,7 +104,14 @@ export function ConfirmReceiptPage() {
             <p><strong>Empresa pagadora:</strong> {preview.empresa_nome ?? 'ReciBox'}</p>
             <p><strong>Valor:</strong> {currencyBRL(Number(preview.valor))}</p>
             <p><strong>Descrição:</strong> {preview.descricao}</p>
-            <p><strong>Status atual:</strong> {preview.status}</p>
+            <p><strong>Tipo da operação:</strong> {operationTypeLabel}</p>
+            <p><strong>Data prevista de pagamento:</strong> {paymentDateLabel}</p>
+            <p><strong>Status atual:</strong> {preview.status === 'pendente' && isScheduledPayment ? 'pendente (operação faturada)' : preview.status}</p>
+            {isScheduledPayment ? (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
+                <strong>Operação faturada:</strong> esta operação será liquidada somente em <strong>{paymentDateLabel}</strong>.
+              </p>
+            ) : null}
             {preview.confirmation_signature ? <p><strong>Assinatura:</strong> {preview.confirmation_signature}</p> : null}
             {preview.confirmation_signer_name ? <p><strong>Confirmado por:</strong> {preview.confirmation_signer_name}</p> : null}
             {preview.confirmation_signer_document ? <p><strong>Documento:</strong> {preview.confirmation_signer_document}</p> : null}
@@ -110,10 +126,14 @@ export function ConfirmReceiptPage() {
         </div>
         <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
           <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-          <span>Declaro que recebi este pagamento e autorizo o registro eletrônico desta confirmação com os dados informados.</span>
+          <span>
+            {isScheduledPayment
+              ? 'Declaro que estou ciente de que esta é uma operação faturada e que o pagamento será realizado na data prevista no recibo. Autorizo o registro eletrônico desta ciência com os dados informados.'
+              : 'Declaro que recebi este pagamento e autorizo o registro eletrônico desta confirmação com os dados informados.'}
+          </span>
         </label>
         <button onClick={confirm} disabled={loading || preview?.status === 'confirmado'} className="mt-5 rounded-xl bg-slate-900 px-4 py-2 text-white disabled:opacity-60">
-          {loading ? 'Confirmando...' : 'Confirmar recebimento'}
+          {loading ? 'Confirmando...' : isScheduledPayment ? 'Confirmar ciência da operação faturada' : 'Confirmar recebimento'}
         </button>
         {message ? <p className="mt-4 text-sm">{message}</p> : null}
       </div>

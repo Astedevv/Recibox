@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, type Payment, type Supplier } from '@/lib/supabase'
+import { supabase, type CompanySettings, type Payment, type Supplier } from '@/lib/supabase'
 import { currencyBRL, datetimeBR } from '@/lib/utils'
 
 export function HistoryPage() {
   const desktopApi = window.reciboxApi
   const [payments, setPayments] = useState<Payment[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [settings, setSettings] = useState<CompanySettings | null>(null)
   const [filters, setFilters] = useState({ status: '', fornecedor: '', inicio: '', fim: '' })
 
   useEffect(() => {
@@ -14,8 +15,10 @@ export function HistoryPage() {
         supabase.from('pagamentos').select('*').order('data_pagamento', { ascending: false }),
         supabase.from('fornecedores').select('*')
       ])
+      const { data: cfg } = await supabase.from('configuracoes').select('*').limit(1).maybeSingle()
       setPayments((pay as Payment[]) ?? [])
       setSuppliers((sup as Supplier[]) ?? [])
+      setSettings((cfg as CompanySettings) ?? null)
     }
     load()
   }, [])
@@ -42,9 +45,18 @@ export function HistoryPage() {
     }
     const share = await desktopApi.buildShareMessage({
       fornecedorNome: supplier.nome,
+      fornecedorDocumento: supplier.cpf_cnpj,
+      fornecedorPix: supplier.pix,
       valor: Number(payment.valor),
       descricao: payment.descricao,
-      confirmationToken: payment.confirmation_token
+      obra: payment.obra,
+      formaPagamento: payment.forma_pagamento,
+      dataPagamento: payment.data_pagamento,
+      empresaNome: settings?.empresa_nome ?? 'ReciBox',
+      empresaCnpj: settings?.cnpj ?? null,
+      empresaEndereco: settings?.endereco ?? null,
+      confirmationToken: payment.confirmation_token,
+      confirmationBaseUrl: settings?.confirmation_base_url ?? ''
     })
     await desktopApi.openEmailClient({
       to: supplier.email,
@@ -62,9 +74,18 @@ export function HistoryPage() {
     if (!supplier) return
     const share = await desktopApi.buildShareMessage({
       fornecedorNome: supplier.nome,
+      fornecedorDocumento: supplier.cpf_cnpj,
+      fornecedorPix: supplier.pix,
       valor: Number(payment.valor),
       descricao: payment.descricao,
-      confirmationToken: payment.confirmation_token
+      obra: payment.obra,
+      formaPagamento: payment.forma_pagamento,
+      dataPagamento: payment.data_pagamento,
+      empresaNome: settings?.empresa_nome ?? 'ReciBox',
+      empresaCnpj: settings?.cnpj ?? null,
+      empresaEndereco: settings?.endereco ?? null,
+      confirmationToken: payment.confirmation_token,
+      confirmationBaseUrl: settings?.confirmation_base_url ?? ''
     })
     await navigator.clipboard.writeText(share.whatsappMessage)
     alert('Mensagem copiada para WhatsApp.')

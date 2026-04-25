@@ -19,7 +19,6 @@ export function PaymentsPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [settings, setSettings] = useState<CompanySettings | null>(null)
-  const [confirmationBaseUrl, setConfirmationBaseUrl] = useState('')
   const [processingIds, setProcessingIds] = useState<string[]>([])
   const autoProcessingRef = useRef(false)
   const [form, setForm] = useState({
@@ -44,9 +43,6 @@ export function PaymentsPage() {
 
   useEffect(() => {
     load()
-    if (desktopApi?.getEnv) {
-      desktopApi.getEnv().then((env) => setConfirmationBaseUrl(env.confirmationBaseUrl))
-    }
   }, [])
 
   const suppliersById = useMemo(() => Object.fromEntries(suppliers.map((s) => [s.id, s])), [suppliers])
@@ -59,9 +55,18 @@ export function PaymentsPage() {
       supplier,
       share: await desktopApi.buildShareMessage({
         fornecedorNome: supplier.nome,
+        fornecedorDocumento: supplier.cpf_cnpj,
+        fornecedorPix: supplier.pix,
         valor: Number(payment.valor),
         descricao: payment.descricao,
-        confirmationToken: payment.confirmation_token
+        obra: payment.obra,
+        formaPagamento: payment.forma_pagamento,
+        dataPagamento: payment.data_pagamento,
+        empresaNome: settings?.empresa_nome ?? 'ReciBox',
+        empresaCnpj: settings?.cnpj ?? null,
+        empresaEndereco: settings?.endereco ?? null,
+        confirmationToken: payment.confirmation_token,
+        confirmationBaseUrl: settings?.confirmation_base_url ?? ''
       })
     }
   }
@@ -162,11 +167,6 @@ export function PaymentsPage() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">Pagamentos</h2>
-      {confirmationBaseUrl.startsWith('recibox://') ? (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Defina <strong>VITE_CONFIRMATION_BASE_URL</strong> com uma URL pública para que o fornecedor confirme por e-mail fora do desktop.
-        </div>
-      ) : null}
       {!desktopApi ? (
         <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           O app desktop não está com a bridge ativa. Reinicie o ReciBox para geração automática dos recibos.
