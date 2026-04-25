@@ -211,7 +211,7 @@ begin
         signer_metadata = excluded.signer_metadata,
         signature_code = excluded.signature_code;
     if v_payment_date > current_date then
-      return 'Operação faturada com ciência registrada com sucesso. O pagamento será realizado na data prevista no recibo. Assinatura: ' || v_signature_code;
+      return 'Confirmação registrada com sucesso. Pagamento previsto para a data informada no recibo. Assinatura: ' || v_signature_code;
     end if;
 
     return 'Recebimento confirmado com sucesso. Assinatura: ' || v_signature_code;
@@ -228,7 +228,7 @@ begin
 
   if v_existing_signature is not null then
     if v_existing_payment_date > current_date then
-      return 'Operação faturada já estava com ciência confirmada. Assinatura: ' || v_existing_signature;
+      return 'Confirmação já registrada para pagamento com data prevista. Assinatura: ' || v_existing_signature;
     end if;
     return 'Pagamento já estava confirmado. Assinatura: ' || v_existing_signature;
   end if;

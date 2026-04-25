@@ -29,7 +29,7 @@ type ReceiptTemplateInput = {
 
 const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }: ReceiptTemplateInput): string => {
   const scheduledPayment = isFuturePaymentDate(payment.data_pagamento)
-  const operationTypeLabel = scheduledPayment ? 'FATURADA' : 'NÃO FATURADA'
+  const operationTypeLabel = scheduledPayment ? 'Pagamento com data prevista' : 'Pagamento imediato'
   const logoMarkup = company.logo_url
     ? `<img src="${escapeHtml(company.logo_url)}" class="logo" alt="Logo empresa"/>`
     : `<div class="logo-fallback">${escapeHtml(company.empresa_nome.slice(0, 2).toUpperCase())}</div>`
@@ -81,7 +81,7 @@ const buildReceiptDocument = ({ company, supplier, payment, signatureHtml = '' }
       <div class="box"><div class="label">CNPJ</div><div class="valor">${escapeHtml(company.cnpj ?? '-')}</div></div>
     </div>
     <div class="valor-destaque">${money(payment.valor)}</div>
-    ${scheduledPayment ? `<div class="alerta-programado"><strong>Pagamento programado:</strong> este valor será liquidado somente em <strong>${escapeHtml(longDate(payment.data_pagamento))}</strong>. Este documento registra o compromisso/ciência até a data prevista.</div>` : ''}
+    ${scheduledPayment ? `<div class="alerta-programado">Pagamento previsto para <strong>${escapeHtml(longDate(payment.data_pagamento))}</strong>. Este documento registra a confirmação dos dados até a data informada.</div>` : ''}
     <div class="descricao">
       <div class="label">REFERENTE A</div>
       <div class="descricao-box">${escapeHtml(payment.descricao)}</div>
@@ -128,7 +128,7 @@ export const buildSignedReceiptHtml = ({ company, supplier, payment }: GenerateS
       <div class="descricao" style="margin-top:16px;">
         <div class="label">${scheduledPayment ? 'CONFIRMAÇÃO DE CIÊNCIA (PAGAMENTO PROGRAMADO)' : 'CONFIRMAÇÃO DE RECEBIMENTO (ASSINATURA ELETRÔNICA)'}</div>
         <div class="descricao-box">
-          <div><strong>Status:</strong> ${scheduledPayment ? 'OPERAÇÃO FATURADA - CIÊNCIA REGISTRADA' : 'CONFIRMADO'}</div>
+          <div><strong>Status:</strong> ${scheduledPayment ? 'PAGAMENTO COM DATA PREVISTA - CONFIRMAÇÃO REGISTRADA' : 'CONFIRMADO'}</div>
           ${scheduledPayment ? `<div><strong>Liquidação prevista:</strong> ${escapeHtml(longDate(payment.data_pagamento))}</div>` : ''}
           <div><strong>Código da assinatura:</strong> ${escapeHtml(payment.confirmation_signature ?? '-')}</div>
           <div><strong>Confirmado por:</strong> ${escapeHtml(payment.confirmation_signer_name ?? supplier.nome)}</div>

@@ -22,7 +22,7 @@ export function ConfirmReceiptPage() {
   const [consent, setConsent] = useState(false)
   const isScheduledPayment = Boolean(preview?.data_pagamento && preview.data_pagamento > localIsoDate())
   const paymentDateLabel = preview?.data_pagamento ? humanDate(preview.data_pagamento) : '-'
-  const operationTypeLabel = isScheduledPayment ? 'FATURADA' : 'NÃO FATURADA'
+  const operationTypeLabel = isScheduledPayment ? `Previsto para ${paymentDateLabel}` : 'Execução imediata'
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -106,10 +106,10 @@ export function ConfirmReceiptPage() {
             <p><strong>Descrição:</strong> {preview.descricao}</p>
             <p><strong>Tipo da operação:</strong> {operationTypeLabel}</p>
             <p><strong>Data prevista de pagamento:</strong> {paymentDateLabel}</p>
-            <p><strong>Status atual:</strong> {preview.status === 'pendente' && isScheduledPayment ? 'pendente (operação faturada)' : preview.status}</p>
+            <p><strong>Status atual:</strong> {preview.status === 'pendente' && isScheduledPayment ? 'pendente (data futura)' : preview.status}</p>
             {isScheduledPayment ? (
               <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
-                <strong>Operação faturada:</strong> esta operação será liquidada somente em <strong>{paymentDateLabel}</strong>.
+                Pagamento previsto para <strong>{paymentDateLabel}</strong>. A liquidação ocorrerá nessa data.
               </p>
             ) : null}
             {preview.confirmation_signature ? <p><strong>Assinatura:</strong> {preview.confirmation_signature}</p> : null}
@@ -128,12 +128,12 @@ export function ConfirmReceiptPage() {
           <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
           <span>
             {isScheduledPayment
-              ? 'Declaro que estou ciente de que esta é uma operação faturada e que o pagamento será realizado na data prevista no recibo. Autorizo o registro eletrônico desta ciência com os dados informados.'
+              ? 'Declaro que estou ciente dos dados deste pagamento, previsto para a data informada no recibo, e autorizo o registro eletrônico desta confirmação.'
               : 'Declaro que recebi este pagamento e autorizo o registro eletrônico desta confirmação com os dados informados.'}
           </span>
         </label>
         <button onClick={confirm} disabled={loading || preview?.status === 'confirmado'} className="mt-5 rounded-xl bg-slate-900 px-4 py-2 text-white disabled:opacity-60">
-          {loading ? 'Confirmando...' : isScheduledPayment ? 'Confirmar ciência da operação faturada' : 'Confirmar recebimento'}
+          {loading ? 'Confirmando...' : isScheduledPayment ? 'Confirmar ciência dos dados' : 'Confirmar recebimento'}
         </button>
         {message ? <p className="mt-4 text-sm">{message}</p> : null}
       </div>

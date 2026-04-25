@@ -59,13 +59,13 @@ const buildShareBody = (params: {
   const scheduledPayment = isFuturePaymentDate(params.dataPagamento)
   const paymentDateLabel = humanDate(params.dataPagamento)
   const operationTypeLabel = scheduledPayment
-    ? 'FATURADA (pagamento futuro com liquidação na data prevista)'
-    : 'NÃO FATURADA (pagamento previsto para execução imediata)'
+    ? `Previsto para ${paymentDateLabel}`
+    : 'Previsão de execução imediata'
   const lines = [
     `Olá, ${params.fornecedorNome}!`,
     '',
     scheduledPayment
-      ? 'Segue abaixo o resumo formal da operação faturada:'
+      ? 'Segue abaixo o resumo formal do pagamento com data prevista:'
       : 'Segue abaixo o resumo formal do pagamento registrado:',
     '',
     `Empresa: ${params.empresaNome}`,
@@ -83,14 +83,14 @@ const buildShareBody = (params: {
     '',
     ...(scheduledPayment
       ? [
-          'Esta operação é faturada e será liquidada somente na data prevista no recibo.',
-          'Use o link abaixo para confirmar ciência da operação faturada:'
+          `Observação: o pagamento está previsto para ${paymentDateLabel}.`,
+          'Use o link abaixo para confirmar ciência dos dados:'
         ]
       : ['Confirme o recebimento acessando o link abaixo:']),
     params.link,
     '',
     ...(scheduledPayment
-      ? ['Após a confirmação de ciência, o comprovante eletrônico ficará disponível automaticamente.']
+      ? ['Após a confirmação, o comprovante eletrônico ficará disponível automaticamente.']
       : ['Após a confirmação, o recibo assinado ficará disponível automaticamente.']),
     '',
     'Atenciosamente,',
@@ -147,7 +147,7 @@ export function registerIpcHandlers() {
     const link = `${base.replace(/\/$/, '')}/${input.confirmationToken}`
     const whatsappMessage = buildShareBody({ ...input, link })
     const emailSubject = isFuturePaymentDate(input.dataPagamento)
-      ? `Confirmação de ciência de operação faturada - ${input.empresaNome}`
+      ? `Confirmação de pagamento com data prevista - ${input.empresaNome}`
       : `Confirmação de recebimento - ${input.empresaNome}`
     const emailMessage = whatsappMessage
     return { link, whatsappMessage, emailMessage, emailSubject }
