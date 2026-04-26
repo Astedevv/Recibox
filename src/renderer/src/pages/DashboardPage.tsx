@@ -33,17 +33,40 @@ export function DashboardPage() {
     }
   }, [payments])
 
-  if (loading) return <p>Carregando dashboard...</p>
+  if (loading) return <p className="text-text-muted text-[13px]">Carregando dashboard...</p>
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold">Dashboard</h2>
-      <p className="mt-1 text-slate-500">Visão geral financeira e status de confirmações.</p>
-      <div className="mt-6 grid grid-cols-4 gap-4">
-        <StatCard title="Total pago" value={currencyBRL(kpis.total)} />
-        <StatCard title="Total confirmado" value={currencyBRL(kpis.confirmedTotal)} />
-        <StatCard title="Pendentes" value={String(kpis.pendingCount)} />
-        <StatCard title="Fornecedores" value={String(supplierCount)} hint={`${kpis.confirmedCount} pagamentos confirmados`} />
+    <div className="animate-fade-in">
+      <h1 className="text-white">Dashboard</h1>
+      <p className="mt-1 text-text-muted text-[13px]">Visão geral financeira e status de confirmações.</p>
+      
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard 
+          title="Total pago" 
+          value={currencyBRL(kpis.total)} 
+          icon="account_balance_wallet"
+          color="blue"
+        />
+        <StatCard 
+          title="Total confirmado" 
+          value={currencyBRL(kpis.confirmedTotal)} 
+          icon="check_circle"
+          color="green"
+        />
+        <StatCard 
+          title="Pendentes" 
+          value={String(kpis.pendingCount)} 
+          icon="warning"
+          color="yellow"
+          pulse={kpis.pendingCount > 0}
+        />
+        <StatCard 
+          title="Fornecedores" 
+          value={String(supplierCount)} 
+          hint={`${kpis.confirmedCount} pagamentos confirmados`} 
+          icon="domain"
+          color="orange"
+        />
       </div>
     </div>
   )

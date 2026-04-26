@@ -290,3 +290,23 @@ with check (bucket_id = 'receipts' and split_part(name, '/', 1) = auth.uid()::te
 drop policy if exists receipts_read_public on storage.objects;
 create policy receipts_read_public on storage.objects for select to public
 using (bucket_id = 'receipts');
+
+-- Tabela Obras
+create table if not exists public.obras (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nome text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.obras enable row level security;
+
+drop policy if exists obras_owner on public.obras;
+create policy obras_owner on public.obras for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop trigger if exists trg_obras_user on public.obras;
+create trigger trg_obras_user before insert on public.obras
+for each row execute function public.set_user_id_default();
+

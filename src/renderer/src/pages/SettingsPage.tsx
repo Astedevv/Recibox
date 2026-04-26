@@ -66,18 +66,66 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Configurações da empresa</h2>
-      <form onSubmit={save} className="glass grid max-w-3xl grid-cols-2 gap-3 rounded-2xl p-5">
-        <input className="rounded-xl border px-3 py-2" placeholder="Nome da empresa" value={form.empresa_nome} onChange={(e) => setForm((f) => ({ ...f, empresa_nome: e.target.value }))} />
-        <input className="rounded-xl border px-3 py-2" placeholder="CNPJ" value={form.cnpj} onChange={(e) => setForm((f) => ({ ...f, cnpj: e.target.value }))} />
-        <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="Endereço" value={form.endereco} onChange={(e) => setForm((f) => ({ ...f, endereco: e.target.value }))} />
-        <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="URL da logo" value={form.logo_url} onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))} />
-        <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="Rodapé" value={form.rodape} onChange={(e) => setForm((f) => ({ ...f, rodape: e.target.value }))} />
-        <input className="col-span-2 rounded-xl border px-3 py-2" placeholder="URL pública de confirmação" value={form.confirmation_base_url} onChange={(e) => setForm((f) => ({ ...f, confirmation_base_url: e.target.value }))} />
-        <input className="rounded-xl border px-3 py-2" placeholder="Tema" value={form.tema} onChange={(e) => setForm((f) => ({ ...f, tema: e.target.value }))} />
-        <div className="col-span-2">
-          <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">Salvar</button>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-white">Configurações</h1>
+        <p className="mt-1 text-text-muted text-[13px]">Configure os dados da sua empresa e do recibo.</p>
+      </div>
+      
+      <form onSubmit={save} className="bg-surface border border-border shadow-card max-w-3xl rounded-[12px] p-6 space-y-6">
+        <div>
+          <h3 className="text-white flex items-center gap-2 border-b border-border pb-3 mb-4">
+            <span className="material-icons-round text-accent text-[18px]">business</span>
+            Dados da Empresa
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">Nome da Empresa *</label>
+              <input required className="input-field" placeholder="Razão Social" value={form.empresa_nome} onChange={(e) => setForm((f) => ({ ...f, empresa_nome: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">CNPJ</label>
+              <input className="input-field" placeholder="00.000.000/0001-00" value={form.cnpj} onChange={(e) => setForm((f) => ({ ...f, cnpj: e.target.value }))} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">Endereço Completo</label>
+              <input className="input-field" placeholder="Rua, Número, Bairro, Cidade - UF" value={form.endereco} onChange={(e) => setForm((f) => ({ ...f, endereco: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-white flex items-center gap-2 border-b border-border pb-3 mb-4">
+            <span className="material-icons-round text-accent text-[18px]">brush</span>
+            Personalização do Recibo
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">URL da Logo</label>
+              <input className="input-field" placeholder="https://exemplo.com/logo.png" value={form.logo_url} onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))} />
+              {form.logo_url && (
+                <div className="mt-2 p-2 bg-primary-light border border-border rounded-sm inline-block">
+                  <img src={form.logo_url} alt="Logo" className="h-8 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">Texto do Rodapé</label>
+              <input className="input-field" placeholder="Texto exibido no final do PDF" value={form.rodape} onChange={(e) => setForm((f) => ({ ...f, rodape: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-[12px] text-text-muted mb-1 font-[500]">URL Base de Confirmação</label>
+              <input className="input-field" placeholder="https://app.recibox.com.br" value={form.confirmation_base_url} onChange={(e) => setForm((f) => ({ ...f, confirmation_base_url: e.target.value }))} />
+              <p className="text-[11px] text-text-muted mt-1">Usada para gerar os links de assinatura enviados no WhatsApp.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-border flex justify-end">
+          <button className="btn-accent flex items-center gap-2">
+            <span className="material-icons-round text-[16px]">save</span>
+            Salvar Configurações
+          </button>
         </div>
       </form>
     </div>

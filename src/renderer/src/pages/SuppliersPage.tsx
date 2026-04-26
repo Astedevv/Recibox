@@ -82,52 +82,132 @@ export function SuppliersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Fornecedores</h2>
-      <form onSubmit={submit} className="glass grid grid-cols-5 gap-3 rounded-2xl p-4">
-        {Object.entries(form).map(([k, v]) => (
-          <input key={k} className="rounded-xl border px-3 py-2" placeholder={k.toUpperCase()} value={v} onChange={(e) => setForm((prev) => ({ ...prev, [k]: e.target.value }))} />
-        ))}
-        {error ? <p className="col-span-5 text-sm text-red-500">{error}</p> : null}
-        <div className="col-span-5">
-          <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">{editingId ? 'Salvar edição' : 'Cadastrar fornecedor'}</button>
-          {editingId ? (
-            <button type="button" className="ml-2 rounded-xl border border-slate-300 px-4 py-2 text-slate-700" onClick={cancelEdit}>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-white">Fornecedores</h1>
+        <p className="mt-1 text-text-muted text-[13px]">Gerencie os dados de contato e pagamento dos fornecedores.</p>
+      </div>
+      
+      <form onSubmit={submit} className="bg-surface border border-border rounded-[12px] p-6 shadow-card">
+        <h3 className="text-white mb-4 flex items-center gap-2">
+          <span className="material-icons-round text-accent text-[18px]">
+            {editingId ? 'edit' : 'add_circle'}
+          </span>
+          {editingId ? 'Editar Fornecedor' : 'Novo Fornecedor'}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Nome *</label>
+            <input className="input-field" placeholder="Ex: João da Silva" value={form.nome} onChange={(e) => setForm((prev) => ({ ...prev, nome: e.target.value }))} required />
+          </div>
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">CPF/CNPJ</label>
+            <input className="input-field" placeholder="000.000.000-00" value={form.cpf_cnpj} onChange={(e) => setForm((prev) => ({ ...prev, cpf_cnpj: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">WhatsApp</label>
+            <input className="input-field" placeholder="(00) 00000-0000" value={form.whatsapp} onChange={(e) => setForm((prev) => ({ ...prev, whatsapp: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">E-mail</label>
+            <input className="input-field" placeholder="email@exemplo.com" type="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
+          </div>
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Chave PIX</label>
+            <input className="input-field" placeholder="Chave PIX" value={form.pix} onChange={(e) => setForm((prev) => ({ ...prev, pix: e.target.value }))} />
+          </div>
+        </div>
+        
+        {error && (
+          <div className="mt-4 p-3 rounded-sm bg-danger-bg border border-danger/20 flex items-center gap-2">
+            <span className="material-icons-round text-danger text-[16px]">error_outline</span>
+            <p className="text-[12px] text-danger font-[500]">{error}</p>
+          </div>
+        )}
+        
+        <div className="mt-6 flex items-center gap-3">
+          <button className="btn-accent flex items-center gap-2">
+            <span className="material-icons-round text-[16px]">save</span>
+            {editingId ? 'Salvar Alterações' : 'Cadastrar Fornecedor'}
+          </button>
+          {editingId && (
+            <button type="button" className="btn-ghost flex items-center gap-2" onClick={cancelEdit}>
+              <span className="material-icons-round text-[16px]">close</span>
               Cancelar
             </button>
-          ) : null}
+          )}
         </div>
       </form>
 
-      <div className="glass overflow-hidden rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Nome</th>
-              <th className="px-4 py-3 text-left">Documento</th>
-              <th className="px-4 py-3 text-left">Contato</th>
-              <th className="px-4 py-3 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((s) => (
-              <tr key={s.id} className="border-t">
-                <td className="px-4 py-3">{s.nome}</td>
-                <td className="px-4 py-3">{s.cpf_cnpj || '-'}</td>
-                <td className="px-4 py-3">{s.whatsapp || s.email || '-'}</td>
-                <td className="space-x-3 px-4 py-3">
-                  <button className="text-blue-600" onClick={() => startEdit(s)}>
-                    Editar
-                  </button>
-                  <button className="text-red-600" onClick={() => removeSupplier(s)}>
-                    Apagar
-                  </button>
-                </td>
+      <div className="bg-surface border border-border rounded-[12px] overflow-hidden shadow-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr>
+                <th className="table-header px-5 py-4 w-1/3">Fornecedor</th>
+                <th className="table-header px-5 py-4">Documento / PIX</th>
+                <th className="table-header px-5 py-4">Contato</th>
+                <th className="table-header px-5 py-4 w-[100px] text-right">Ações</th>
               </tr>
-            ))}
-            {!items.length ? <tr><td className="px-4 py-6 text-slate-500" colSpan={4}>Nenhum fornecedor cadastrado.</td></tr> : null}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {items.map((s) => (
+                <tr key={s.id} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary-lighter flex items-center justify-center text-text-muted text-[14px] font-bold">
+                        {s.nome.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-white font-[500] text-[13px]">{s.nome}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">
+                    <div>{s.cpf_cnpj || <span className="text-text-muted italic">Sem doc.</span>}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{s.pix ? `PIX: ${s.pix}` : ''}</div>
+                  </td>
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">
+                    <div className="flex items-center gap-1">
+                      <span className="material-icons-round text-[14px] text-text-muted">phone</span>
+                      {s.whatsapp || '-'}
+                    </div>
+                    {s.email && (
+                      <div className="flex items-center gap-1 mt-1 text-[11px] text-text-muted">
+                        <span className="material-icons-round text-[12px]">mail</span>
+                        {s.email}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-accent hover:bg-accent-glow flex items-center justify-center transition-colors"
+                        onClick={() => startEdit(s)}
+                        title="Editar"
+                      >
+                        <span className="material-icons-round text-[16px]">edit</span>
+                      </button>
+                      <button 
+                        className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-danger hover:bg-danger-bg flex items-center justify-center transition-colors"
+                        onClick={() => removeSupplier(s)}
+                        title="Apagar"
+                      >
+                        <span className="material-icons-round text-[16px]">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!items.length && (
+                <tr>
+                  <td className="px-5 py-12 text-center text-text-muted text-[13px]" colSpan={4}>
+                    <span className="material-icons-round text-[32px] text-primary-lighter block mb-2">domain_disabled</span>
+                    Nenhum fornecedor cadastrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

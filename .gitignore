@@ -5,3 +5,5 @@ release
 .env
 .DS_Store
 *.log
+desktop-build*
+installer/

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
+import { ObrasPage } from '@/pages/ObrasPage'
 import { PaymentsPage } from '@/pages/PaymentsPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -16,6 +17,7 @@ function PrivateRoutes() {
       <Route element={<AppShell />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/fornecedores" element={<SuppliersPage />} />
+        <Route path="/obras" element={<ObrasPage />} />
         <Route path="/pagamentos" element={<PaymentsPage />} />
         <Route path="/historico" element={<HistoryPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />

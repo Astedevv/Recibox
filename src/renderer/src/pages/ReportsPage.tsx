@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase, type Payment, type Supplier } from '@/lib/supabase'
 import { currencyBRL } from '@/lib/utils'
+import { StatCard } from '@/components/StatCard'
 
 export function ReportsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -36,6 +37,7 @@ export function ReportsPage() {
   })
 
   const total = filtered.reduce((acc, item) => acc + Number(item.valor), 0)
+  const confirmedCount = filtered.filter((p) => p.status === 'confirmado').length
 
   function exportExcel() {
     const rows = filtered.map((p) => ({
@@ -60,69 +62,113 @@ export function ReportsPage() {
     XLSX.writeFile(workbook, `relatorio-recibox-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
+  const StatusBadge = ({ status }: { status: string }) => {
+    const isPendente = status === 'pendente'
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-[600] ${isPendente ? 'bg-warning-bg text-warning' : 'bg-success-bg text-success'}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isPendente ? 'bg-warning' : 'bg-success'}`}></span>
+        {status.toUpperCase()}
+      </span>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Relatórios</h2>
-      <div className="glass grid grid-cols-6 gap-3 rounded-2xl p-4">
-        <select className="rounded-xl border px-3 py-2" value={filters.fornecedor} onChange={(e) => setFilters((f) => ({ ...f, fornecedor: e.target.value }))}>
-          <option value="">Fornecedor</option>
-          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-        <select className="rounded-xl border px-3 py-2" value={filters.obra} onChange={(e) => setFilters((f) => ({ ...f, obra: e.target.value }))}>
-          <option value="">Obra</option>
-          {obras.map((obra) => <option key={obra} value={obra}>{obra}</option>)}
-        </select>
-        <select className="rounded-xl border px-3 py-2" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
-          <option value="">Status</option>
-          <option value="pendente">Pendente</option>
-          <option value="confirmado">Confirmado</option>
-        </select>
-        <input className="rounded-xl border px-3 py-2" type="date" value={filters.inicio} onChange={(e) => setFilters((f) => ({ ...f, inicio: e.target.value }))} />
-        <input className="rounded-xl border px-3 py-2" type="date" value={filters.fim} onChange={(e) => setFilters((f) => ({ ...f, fim: e.target.value }))} />
-        <button className="rounded-xl bg-emerald-600 px-4 py-2 font-medium text-white" onClick={exportExcel}>Exportar Excel</button>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-white">Relatórios</h1>
+        <p className="mt-1 text-text-muted text-[13px]">Analise os pagamentos e exporte dados para Excel.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass rounded-2xl p-4">
-          <p className="text-sm text-slate-500">Itens filtrados</p>
-          <p className="mt-1 text-2xl font-bold">{filtered.length}</p>
+      <div className="bg-surface border border-border shadow-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 rounded-[12px] p-5 items-end">
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Fornecedor</label>
+          <select className="input-field" value={filters.fornecedor} onChange={(e) => setFilters((f) => ({ ...f, fornecedor: e.target.value }))}>
+            <option value="">Todos</option>
+            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          </select>
         </div>
-        <div className="glass rounded-2xl p-4">
-          <p className="text-sm text-slate-500">Total filtrado</p>
-          <p className="mt-1 text-2xl font-bold">{currencyBRL(total)}</p>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Obra</label>
+          <select className="input-field" value={filters.obra} onChange={(e) => setFilters((f) => ({ ...f, obra: e.target.value }))}>
+            <option value="">Todas</option>
+            {obras.map((obra) => <option key={obra} value={obra}>{obra}</option>)}
+          </select>
         </div>
-        <div className="glass rounded-2xl p-4">
-          <p className="text-sm text-slate-500">Confirmados</p>
-          <p className="mt-1 text-2xl font-bold">{filtered.filter((p) => p.status === 'confirmado').length}</p>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Status</label>
+          <select className="input-field" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Data Início</label>
+          <input className="input-field" type="date" value={filters.inicio} onChange={(e) => setFilters((f) => ({ ...f, inicio: e.target.value }))} />
+        </div>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Data Fim</label>
+          <input className="input-field" type="date" value={filters.fim} onChange={(e) => setFilters((f) => ({ ...f, fim: e.target.value }))} />
+        </div>
+        <div>
+          <button className="btn-success w-full flex items-center justify-center gap-2" onClick={exportExcel}>
+            <span className="material-icons-round text-[16px]">file_download</span>
+            Exportar XLS
+          </button>
         </div>
       </div>
 
-      <div className="glass overflow-hidden rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Data</th>
-              <th className="px-4 py-3 text-left">Fornecedor</th>
-              <th className="px-4 py-3 text-left">Obra</th>
-              <th className="px-4 py-3 text-left">Valor</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Assinatura</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="px-4 py-3">{p.data_pagamento}</td>
-                <td className="px-4 py-3">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</td>
-                <td className="px-4 py-3">{p.obra ?? '-'}</td>
-                <td className="px-4 py-3">{currencyBRL(Number(p.valor))}</td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3">{p.confirmation_signature ?? '-'}</td>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard title="Itens filtrados" value={String(filtered.length)} icon="filter_alt" color="blue" />
+        <StatCard title="Total filtrado" value={currencyBRL(total)} icon="account_balance_wallet" color="green" />
+        <StatCard title="Confirmados" value={String(confirmedCount)} icon="check_circle" color="orange" hint={`${filtered.length - confirmedCount} pendentes`} />
+      </div>
+
+      <div className="bg-surface border border-border shadow-card overflow-hidden rounded-[12px]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr>
+                <th className="table-header px-5 py-4">Data</th>
+                <th className="table-header px-5 py-4">Fornecedor</th>
+                <th className="table-header px-5 py-4">Obra</th>
+                <th className="table-header px-5 py-4">Valor</th>
+                <th className="table-header px-5 py-4">Status</th>
+                <th className="table-header px-5 py-4">Assinatura</th>
               </tr>
-            ))}
-            {!filtered.length ? <tr><td className="px-4 py-6 text-slate-500" colSpan={6}>Sem resultados para os filtros.</td></tr> : null}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => (
+                <tr key={p.id} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">{p.data_pagamento}</td>
+                  <td className="px-5 py-4 text-[13px] text-white font-[500]">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</td>
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">{p.obra ?? '-'}</td>
+                  <td className="px-5 py-4">
+                    <span className="text-money">{currencyBRL(Number(p.valor))}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={p.status} />
+                  </td>
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">
+                    {p.confirmation_signature ? (
+                      <span className="text-success truncate max-w-[150px] inline-block font-[600]" title={p.confirmation_signature}>{p.confirmation_signature}</span>
+                    ) : (
+                      <span className="text-text-muted italic">Pendente</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!filtered.length && (
+                <tr>
+                  <td className="px-5 py-12 text-center text-text-muted text-[13px]" colSpan={6}>
+                    <span className="material-icons-round text-[32px] text-primary-lighter block mb-2">table_chart</span>
+                    Nenhum resultado para os filtros atuais.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

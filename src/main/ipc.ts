@@ -36,9 +36,6 @@ const buildConfirmationLink = (token: string) => {
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const humanDate = (value: string) =>
   new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const localIsoDate = (date = new Date()) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-const isFuturePaymentDate = (value: string) => value > localIsoDate()
 
 const compact = (value?: string | null) => (value && value.trim() ? value.trim() : 'Não informado')
 
@@ -56,17 +53,10 @@ const buildShareBody = (params: {
   empresaEndereco?: string | null
   link: string
 }) => {
-  const scheduledPayment = isFuturePaymentDate(params.dataPagamento)
-  const paymentDateLabel = humanDate(params.dataPagamento)
-  const operationTypeLabel = scheduledPayment
-    ? `Previsto para ${paymentDateLabel}`
-    : 'Previsão de execução imediata'
   const lines = [
     `Olá, ${params.fornecedorNome}!`,
     '',
-    scheduledPayment
-      ? 'Segue abaixo o resumo formal do pagamento com data prevista:'
-      : 'Segue abaixo o resumo formal do pagamento registrado:',
+    `Segue abaixo o resumo formal do pagamento registrado:`,
     '',
     `Empresa: ${params.empresaNome}`,
     `CNPJ: ${compact(params.empresaCnpj)}`,
@@ -75,23 +65,15 @@ const buildShareBody = (params: {
     `Documento do fornecedor: ${compact(params.fornecedorDocumento)}`,
     `Chave PIX: ${compact(params.fornecedorPix)}`,
     `Valor: ${money(params.valor)}`,
-    `Tipo da operação: ${operationTypeLabel}`,
-    `Data prevista de pagamento: ${paymentDateLabel}`,
+    `Data do pagamento: ${humanDate(params.dataPagamento)}`,
     `Forma de pagamento: ${compact(params.formaPagamento)}`,
     `Obra/Projeto: ${compact(params.obra)}`,
     `Descrição: ${params.descricao}`,
     '',
-    ...(scheduledPayment
-      ? [
-          `Observação: o pagamento está previsto para ${paymentDateLabel}.`,
-          'Use o link abaixo para confirmar ciência dos dados:'
-        ]
-      : ['Confirme o recebimento acessando o link abaixo:']),
+    'Confirme o recebimento acessando o link abaixo:',
     params.link,
     '',
-    ...(scheduledPayment
-      ? ['Após a confirmação, o comprovante eletrônico ficará disponível automaticamente.']
-      : ['Após a confirmação, o recibo assinado ficará disponível automaticamente.']),
+    'Após a confirmação, o recibo assinado ficará disponível automaticamente.',
     '',
     'Atenciosamente,',
     `Equipe ${params.empresaNome}`
@@ -146,9 +128,7 @@ export function registerIpcHandlers() {
     const base = normalizeConfirmationBaseUrl(input.confirmationBaseUrl ?? CONFIRMATION_BASE_URL)
     const link = `${base.replace(/\/$/, '')}/${input.confirmationToken}`
     const whatsappMessage = buildShareBody({ ...input, link })
-    const emailSubject = isFuturePaymentDate(input.dataPagamento)
-      ? `Confirmação de pagamento com data prevista - ${input.empresaNome}`
-      : `Confirmação de recebimento - ${input.empresaNome}`
+    const emailSubject = `Confirmação de recebimento - ${input.empresaNome}`
     const emailMessage = whatsappMessage
     return { link, whatsappMessage, emailMessage, emailSubject }
   })

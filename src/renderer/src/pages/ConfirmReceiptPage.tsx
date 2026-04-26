@@ -95,47 +95,138 @@ export function ConfirmReceiptPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-700 via-blue-500 to-orange-500 p-6">
-      <div className="w-full max-w-xl rounded-2xl bg-white p-8 shadow-soft">
-        <h2 className="text-2xl font-bold text-slate-900">Confirmação de Recebimento</h2>
-        {!previewLoading && preview ? (
-          <div className="mt-5 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p><strong>Fornecedor:</strong> {preview.fornecedor_nome}</p>
-            <p><strong>Empresa pagadora:</strong> {preview.empresa_nome ?? 'ReciBox'}</p>
-            <p><strong>Valor:</strong> {currencyBRL(Number(preview.valor))}</p>
-            <p><strong>Descrição:</strong> {preview.descricao}</p>
-            <p><strong>Tipo da operação:</strong> {operationTypeLabel}</p>
-            <p><strong>Data prevista de pagamento:</strong> {paymentDateLabel}</p>
-            <p><strong>Status atual:</strong> {preview.status === 'pendente' && isScheduledPayment ? 'pendente (data futura)' : preview.status}</p>
-            {isScheduledPayment ? (
-              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
-                Pagamento previsto para <strong>{paymentDateLabel}</strong>. A liquidação ocorrerá nessa data.
-              </p>
-            ) : null}
-            {preview.confirmation_signature ? <p><strong>Assinatura:</strong> {preview.confirmation_signature}</p> : null}
-            {preview.confirmation_signer_name ? <p><strong>Confirmado por:</strong> {preview.confirmation_signer_name}</p> : null}
-            {preview.confirmation_signer_document ? <p><strong>Documento:</strong> {preview.confirmation_signer_document}</p> : null}
+    <div className="flex min-h-screen items-center justify-center bg-bg p-6 font-sans">
+      <div className="w-full max-w-2xl rounded-[16px] bg-surface border border-border p-8 shadow-modal animate-slide-up">
+        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+          <div className="w-12 h-12 rounded-sm bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center shadow-glow">
+            <span className="material-icons-round text-[24px] text-white">draw</span>
           </div>
-        ) : null}
-        {!previewLoading && !preview ? <p className="mt-3 text-sm text-red-600">Não foi possível localizar os dados desse token.</p> : null}
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Nome completo de quem confirma" value={signerName} onChange={(e) => setSignerName(e.target.value)} />
-          <input className="rounded-xl border px-3 py-2 text-sm" placeholder="CPF/CNPJ de quem confirma" value={signerDocument} onChange={(e) => setSignerDocument(e.target.value)} />
-          <input className="rounded-xl border px-3 py-2 text-sm" placeholder="E-mail (opcional)" value={signerEmail} onChange={(e) => setSignerEmail(e.target.value)} />
-          <input className="rounded-xl border px-3 py-2 text-sm" placeholder="WhatsApp (opcional)" value={signerPhone} onChange={(e) => setSignerPhone(e.target.value)} />
+          <div>
+            <h1 className="text-[20px] font-[800] text-white">Assinatura Digital</h1>
+            <p className="text-[13px] text-text-muted font-[500]">Confirmação de recebimento</p>
+          </div>
         </div>
-        <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
-          <input type="checkbox" className="mt-0.5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-          <span>
-            {isScheduledPayment
-              ? 'Declaro que estou ciente dos dados deste pagamento, previsto para a data informada no recibo, e autorizo o registro eletrônico desta confirmação.'
-              : 'Declaro que recebi este pagamento e autorizo o registro eletrônico desta confirmação com os dados informados.'}
-          </span>
-        </label>
-        <button onClick={confirm} disabled={loading || preview?.status === 'confirmado'} className="mt-5 rounded-xl bg-slate-900 px-4 py-2 text-white disabled:opacity-60">
-          {loading ? 'Confirmando...' : isScheduledPayment ? 'Confirmar ciência dos dados' : 'Confirmar recebimento'}
-        </button>
-        {message ? <p className="mt-4 text-sm">{message}</p> : null}
+
+        {!previewLoading && preview ? (
+          <>
+            <div className="bg-primary-light border border-border rounded-[8px] p-5 space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] text-text-muted font-[600] uppercase tracking-wide">Fornecedor</p>
+                  <p className="text-[14px] text-white font-[500] mt-1">{preview.fornecedor_nome}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-text-muted font-[600] uppercase tracking-wide">Empresa Pagadora</p>
+                  <p className="text-[14px] text-text-secondary mt-1">{preview.empresa_nome ?? 'ReciBox'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-text-muted font-[600] uppercase tracking-wide">Valor</p>
+                  <p className="text-[18px] text-money font-[700] mt-1">{currencyBRL(Number(preview.valor))}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-text-muted font-[600] uppercase tracking-wide">Operação</p>
+                  <p className="text-[14px] text-text-secondary mt-1">{operationTypeLabel}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <p className="text-[11px] text-text-muted font-[600] uppercase tracking-wide mb-1">Descrição</p>
+                <p className="text-[13px] text-text-secondary">{preview.descricao}</p>
+              </div>
+
+              {isScheduledPayment && (
+                <div className="rounded-sm border border-warning/20 bg-warning-bg px-4 py-3 text-[13px] text-warning flex items-start gap-2 mt-4">
+                  <span className="material-icons-round text-[18px] mt-0.5">event</span>
+                  <p>Pagamento previsto para <strong>{paymentDateLabel}</strong>. A liquidação ocorrerá nessa data.</p>
+                </div>
+              )}
+
+              {preview.status === 'confirmado' && (
+                <div className="rounded-sm border border-success/20 bg-success-bg px-4 py-4 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="material-icons-round text-[18px] text-success">verified</span>
+                    <h4 className="text-success font-[700] text-[14px]">Assinatura Registrada</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[12px] text-text-secondary">
+                    <p><strong className="text-text">Hash:</strong> {preview.confirmation_signature}</p>
+                    <p><strong className="text-text">Confirmado por:</strong> {preview.confirmation_signer_name}</p>
+                    <p><strong className="text-text">Documento:</strong> {preview.confirmation_signer_document}</p>
+                    <p><strong className="text-text">Data:</strong> {new Date(preview.confirmation_date!).toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {preview.status !== 'confirmado' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-white text-[15px] font-[600] mb-4">Seus dados para assinatura</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[12px] text-text-muted mb-1 font-[500]">Nome Completo *</label>
+                      <input className="input-field" placeholder="Seu nome" value={signerName} onChange={(e) => setSignerName(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-text-muted mb-1 font-[500]">CPF / CNPJ *</label>
+                      <input className="input-field" placeholder="Seu documento" value={signerDocument} onChange={(e) => setSignerDocument(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-text-muted mb-1 font-[500]">E-mail (Opcional)</label>
+                      <input className="input-field" placeholder="Para receber a via" value={signerEmail} onChange={(e) => setSignerEmail(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] text-text-muted mb-1 font-[500]">WhatsApp (Opcional)</label>
+                      <input className="input-field" placeholder="(00) 00000-0000" value={signerPhone} onChange={(e) => setSignerPhone(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer p-4 bg-primary-light border border-border rounded-sm">
+                  <input 
+                    type="checkbox" 
+                    className="mt-0.5 w-4 h-4 rounded border-border bg-bg text-accent focus:ring-accent focus:ring-offset-0" 
+                    checked={consent} 
+                    onChange={(e) => setConsent(e.target.checked)} 
+                  />
+                  <span className="text-[13px] text-text-secondary leading-relaxed">
+                    {isScheduledPayment
+                      ? 'Declaro que estou ciente dos dados deste pagamento, previsto para a data informada no recibo, e autorizo o registro eletrônico desta confirmação.'
+                      : 'Declaro que recebi este pagamento e autorizo o registro eletrônico desta confirmação com os dados informados, gerando uma assinatura digital vinculada ao meu IP e dispositivo.'}
+                  </span>
+                </label>
+
+                <button 
+                  onClick={confirm} 
+                  disabled={loading || !consent || !signerName || !signerDocument} 
+                  className="btn-accent w-full py-3 text-[14px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <><span className="material-icons-round animate-spin-slow text-[18px]">refresh</span> Processando...</>
+                  ) : (
+                    <><span className="material-icons-round text-[18px]">fingerprint</span> {isScheduledPayment ? 'Confirmar Ciência' : 'Assinar Digitalmente'}</>
+                  )}
+                </button>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {!previewLoading && !preview && (
+          <div className="flex flex-col items-center justify-center p-8 text-center bg-danger-bg border border-danger/20 rounded-[8px]">
+            <span className="material-icons-round text-[48px] text-danger mb-3">gpp_bad</span>
+            <p className="text-[15px] font-[600] text-danger">Token Inválido ou Expirado</p>
+            <p className="text-[13px] text-danger/80 mt-1">Não foi possível localizar os dados desse link. Solicite um novo à empresa.</p>
+          </div>
+        )}
+
+        {message && (
+          <div className={`mt-6 p-4 rounded-sm border flex items-center gap-2 text-[13px] font-[500] ${preview?.status === 'confirmado' ? 'bg-success-bg border-success/20 text-success' : 'bg-danger-bg border-danger/20 text-danger'}`}>
+            <span className="material-icons-round text-[18px]">
+              {preview?.status === 'confirmado' ? 'check_circle' : 'error'}
+            </span>
+            {message}
+          </div>
+        )}
       </div>
     </div>
   )

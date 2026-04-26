@@ -7,7 +7,7 @@ const paymentSchema = z.object({
   fornecedor_id: z.string().uuid(),
   valor: z.coerce.number().positive(),
   descricao: z.string().min(3),
-  obra: z.string().optional(),
+  obra: z.string().min(1, 'Selecione uma obra'),
   forma_pagamento: z.string().min(2),
   data_pagamento: z.string().min(8)
 })
@@ -18,6 +18,7 @@ export function PaymentsPage() {
   const desktopApi = window.reciboxApi
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
+  const [obras, setObras] = useState<{id: string, nome: string}[]>([])
   const [settings, setSettings] = useState<CompanySettings | null>(null)
   const [processingIds, setProcessingIds] = useState<string[]>([])
   const autoProcessingRef = useRef(false)
@@ -31,14 +32,16 @@ export function PaymentsPage() {
   })
 
   const load = async () => {
-    const [{ data: sup }, { data: pay }, { data: cfg }] = await Promise.all([
+    const [{ data: sup }, { data: pay }, { data: cfg }, { data: obs }] = await Promise.all([
       supabase.from('fornecedores').select('*').order('nome'),
       supabase.from('pagamentos').select('*').order('created_at', { ascending: false }),
-      supabase.from('configuracoes').select('*').limit(1).maybeSingle()
+      supabase.from('configuracoes').select('*').limit(1).maybeSingle(),
+      supabase.from('obras').select('*').order('nome')
     ])
     setSuppliers((sup as Supplier[]) ?? [])
     setPayments((pay as Payment[]) ?? [])
     setSettings((cfg as CompanySettings) ?? null)
+    setObras(obs ?? [])
   }
 
   useEffect(() => {
@@ -78,7 +81,6 @@ export function PaymentsPage() {
 
     const insert = {
       ...parsed.data,
-      obra: parsed.data.obra || null,
       status: 'pendente',
       confirmation_token: newToken()
     }
@@ -164,111 +166,190 @@ export function PaymentsPage() {
 
   const isProcessing = (id: string) => processingIds.includes(id)
 
+  const StatusBadge = ({ status }: { status: string }) => {
+    const isPendente = status === 'pendente'
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-[600] ${isPendente ? 'bg-warning-bg text-warning' : 'bg-success-bg text-success'}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isPendente ? 'bg-warning' : 'bg-success'}`}></span>
+        {status.toUpperCase()}
+      </span>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Pagamentos</h2>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-white">Pagamentos</h1>
+        <p className="mt-1 text-text-muted text-[13px]">Lance novos pagamentos e solicite os recibos.</p>
+      </div>
+      
       {!desktopApi ? (
-        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-sm border border-danger/30 bg-danger-bg px-4 py-3 text-[13px] text-danger flex items-center gap-2">
+          <span className="material-icons-round text-[18px]">warning</span>
           O app desktop não está com a bridge ativa. Reinicie o ReciBox para geração automática dos recibos.
         </div>
       ) : null}
 
-      <form onSubmit={submitPayment} className="glass grid grid-cols-6 gap-3 rounded-2xl p-4">
-        <select required className="rounded-xl border px-3 py-2" value={form.fornecedor_id} onChange={(e) => setForm((p) => ({ ...p, fornecedor_id: e.target.value }))}>
-          <option value="">Fornecedor</option>
-          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-        <input required className="rounded-xl border px-3 py-2" placeholder="Valor" type="number" step="0.01" value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: e.target.value }))} />
-        <input required className="rounded-xl border px-3 py-2" placeholder="Descrição" value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} />
-        <input className="rounded-xl border px-3 py-2" placeholder="Obra" value={form.obra} onChange={(e) => setForm((p) => ({ ...p, obra: e.target.value }))} />
-        <input required className="rounded-xl border px-3 py-2" placeholder="Forma" value={form.forma_pagamento} onChange={(e) => setForm((p) => ({ ...p, forma_pagamento: e.target.value }))} />
-        <input required className="rounded-xl border px-3 py-2" type="date" value={form.data_pagamento} onChange={(e) => setForm((p) => ({ ...p, data_pagamento: e.target.value }))} />
-        <div className="col-span-6">
-          <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">Registrar pagamento</button>
+      <form onSubmit={submitPayment} className="bg-surface border border-border rounded-[12px] p-6 shadow-card">
+        <h3 className="text-white mb-4 flex items-center gap-2">
+          <span className="material-icons-round text-accent text-[18px]">rocket_launch</span>
+          Novo Lançamento
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="xl:col-span-2">
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Fornecedor *</label>
+            <select required className="input-field" value={form.fornecedor_id} onChange={(e) => setForm((p) => ({ ...p, fornecedor_id: e.target.value }))}>
+              <option value="">Selecione...</option>
+              {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Valor *</label>
+            <input required className="input-field" placeholder="0,00" type="number" step="0.01" value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: e.target.value }))} />
+          </div>
+          <div className="xl:col-span-3">
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Descrição *</label>
+            <input required className="input-field" placeholder="Referente a..." value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} />
+          </div>
+          <div className="xl:col-span-2">
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Obra *</label>
+            <select required className="input-field" value={form.obra} onChange={(e) => setForm((p) => ({ ...p, obra: e.target.value }))}>
+              <option value="">Selecione a obra...</option>
+              {obras.map((o) => <option key={o.id} value={o.nome}>{o.nome}</option>)}
+            </select>
+          </div>
+          <div className="xl:col-span-2">
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Forma de Pgto *</label>
+            <input required className="input-field" placeholder="Ex: PIX, Transferência" value={form.forma_pagamento} onChange={(e) => setForm((p) => ({ ...p, forma_pagamento: e.target.value }))} />
+          </div>
+          <div className="xl:col-span-2">
+            <label className="block text-[12px] text-text-muted mb-1 font-[500]">Data *</label>
+            <input required className="input-field" type="date" value={form.data_pagamento} onChange={(e) => setForm((p) => ({ ...p, data_pagamento: e.target.value }))} />
+          </div>
+        </div>
+        <div className="mt-6">
+          <button className="btn-accent flex items-center gap-2">
+            <span className="material-icons-round text-[16px]">add</span>
+            Registrar Pagamento
+          </button>
         </div>
       </form>
 
-      <div className="glass overflow-hidden rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Fornecedor</th>
-              <th className="px-4 py-3 text-left">Valor</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payments.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="px-4 py-3">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</td>
-                <td className="px-4 py-3">{currencyBRL(Number(p.valor))}</td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3">
-                  {p.status === 'pendente' ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        className="rounded bg-slate-800 px-2 py-1 text-xs text-white"
-                        onClick={async () => {
-                          try {
-                            const { share } = await buildShareMessage(p)
-                            await navigator.clipboard.writeText(share.whatsappMessage)
-                            alert('Mensagem copiada com sucesso.')
-                          } catch (error) {
-                            alert(error instanceof Error ? error.message : 'Não foi possível copiar a mensagem.')
-                          }
-                        }}
-                      >
-                        Copiar mensagem
-                      </button>
-                      <button
-                        className="rounded bg-amber-500 px-2 py-1 text-xs text-white"
-                        onClick={async () => {
-                          try {
-                            const { supplier, share } = await buildShareMessage(p)
-                            if (!supplier.email) throw new Error('Fornecedor sem e-mail cadastrado.')
-                            await desktopApi?.openEmailClient({
-                              to: supplier.email,
-                              subject: share.emailSubject,
-                              body: share.emailMessage
-                            })
-                          } catch (error) {
-                            alert(error instanceof Error ? error.message : 'Não foi possível abrir o e-mail.')
-                          }
-                        }}
-                      >
-                        E-mail
-                      </button>
-                      <button
-                        className="rounded bg-emerald-600 px-2 py-1 text-xs text-white"
-                        onClick={async () => {
-                          try {
-                            const { share } = await buildShareMessage(p)
-                            await navigator.clipboard.writeText(share.link)
-                            alert('Link copiado com sucesso.')
-                          } catch (error) {
-                            alert(error instanceof Error ? error.message : 'Não foi possível copiar o link.')
-                          }
-                        }}
-                      >
-                        Copiar link
-                      </button>
-                    </div>
-                  ) : p.pdf_url ? (
-                    <a className="text-blue-600" href={p.pdf_url} target="_blank" rel="noreferrer">Abrir recibo</a>
-                  ) : isProcessing(p.id) ? (
-                    <span className="text-slate-500">Gerando...</span>
-                  ) : (
-                    <span className="text-slate-500">Aguardando processamento</span>
-                  )}
-                </td>
+      <div className="bg-surface border border-border rounded-[12px] overflow-hidden shadow-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr>
+                <th className="table-header px-5 py-4 w-[250px]">Fornecedor</th>
+                <th className="table-header px-5 py-4">Detalhes</th>
+                <th className="table-header px-5 py-4">Valor</th>
+                <th className="table-header px-5 py-4">Status</th>
+                <th className="table-header px-5 py-4 text-right">Ações</th>
               </tr>
-            ))}
-            {!payments.length ? <tr><td className="px-4 py-6 text-slate-500" colSpan={4}>Nenhum pagamento.</td></tr> : null}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {payments.map((p) => (
+                <tr key={p.id} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-5 py-4">
+                    <div className="text-white font-[500] text-[13px]">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{datetimeBR(p.created_at || '')}</div>
+                  </td>
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">
+                    <div className="truncate max-w-[200px]" title={p.descricao}>{p.descricao}</div>
+                    <div className="text-[11px] text-text-muted mt-0.5">{p.forma_pagamento} {p.obra ? `• ${p.obra}` : ''}</div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-money">{currencyBRL(Number(p.valor))}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={p.status} />
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    {p.status === 'pendente' ? (
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          title="Copiar Link"
+                          className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-success hover:bg-success-bg flex items-center justify-center transition-colors"
+                          onClick={async () => {
+                            try {
+                              const { share } = await buildShareMessage(p)
+                              await navigator.clipboard.writeText(share.link)
+                              // Could use toast here
+                            } catch (error) {
+                              alert(error instanceof Error ? error.message : 'Não foi possível copiar.')
+                            }
+                          }}
+                        >
+                          <span className="material-icons-round text-[16px]">link</span>
+                        </button>
+                        <button
+                          title="WhatsApp"
+                          className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-accent hover:bg-accent-glow flex items-center justify-center transition-colors"
+                          onClick={async () => {
+                            try {
+                              const { share } = await buildShareMessage(p)
+                              await navigator.clipboard.writeText(share.whatsappMessage)
+                            } catch (error) {
+                              alert(error instanceof Error ? error.message : 'Não foi possível copiar a mensagem.')
+                            }
+                          }}
+                        >
+                          <span className="material-icons-round text-[16px]">content_copy</span>
+                        </button>
+                        <button
+                          title="Enviar E-mail"
+                          className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-blue-400 hover:bg-blue-400/10 flex items-center justify-center transition-colors"
+                          onClick={async () => {
+                            try {
+                              const { supplier, share } = await buildShareMessage(p)
+                              if (!supplier.email) throw new Error('Fornecedor sem e-mail cadastrado.')
+                              await desktopApi?.openEmailClient({
+                                to: supplier.email,
+                                subject: share.emailSubject,
+                                body: share.emailMessage
+                              })
+                            } catch (error) {
+                              alert(error instanceof Error ? error.message : 'Não foi possível abrir o e-mail.')
+                            }
+                          }}
+                        >
+                          <span className="material-icons-round text-[16px]">mail</span>
+                        </button>
+                      </div>
+                    ) : p.pdf_url ? (
+                      <a 
+                        className="btn-ghost flex items-center justify-center gap-2 max-w-max ml-auto text-accent hover:text-accent-hover" 
+                        href={p.pdf_url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                      >
+                        <span className="material-icons-round text-[16px]">picture_as_pdf</span>
+                        Recibo
+                      </a>
+                    ) : isProcessing(p.id) ? (
+                      <span className="text-text-muted text-[12px] flex items-center gap-1 justify-end">
+                        <span className="material-icons-round animate-spin-slow text-[14px]">refresh</span>
+                        Gerando...
+                      </span>
+                    ) : (
+                      <span className="text-text-muted text-[12px]">Processando...</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!payments.length && (
+                <tr>
+                  <td className="px-5 py-12 text-center text-text-muted text-[13px]" colSpan={5}>
+                    <span className="material-icons-round text-[32px] text-primary-lighter block mb-2">receipt_long</span>
+                    Nenhum pagamento registrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <p className="text-xs text-slate-500">Última atualização: {datetimeBR(new Date().toISOString())}</p>
+      <p className="text-[11px] text-text-muted">Última atualização: {datetimeBR(new Date().toISOString())}</p>
     </div>
   )
 }

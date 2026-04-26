@@ -1,6 +1,6 @@
  {
   "name": "recibox",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "ReciBox desktop app for supplier payments and receipts",
   "main": "out/main/index.js",
   "author": "ReciBox",
@@ -9,6 +9,12 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:v3": "npm run build && npx --yes electron-builder --config release/builder-effective-config.yaml --win --x64 --dir --config.directories.output=desktop-build-v3",
+    "installer:v3": "pwsh -Command \"$env:RECIBOX_BUILD_DIR='desktop-build-v3\\win-unpacked'; $env:RECIBOX_INSTALLER_OUT_DIR='desktop-build-v3\\installer'; & 'scripts\\build-installer.ps1'\"",
+    "dist:v3": "npm run build:v3 && npm run installer:v3",
+    "build:v4": "npm run build && npx --yes electron-builder --config release/builder-effective-config.yaml --win --x64 --dir --config.directories.output=desktop-build-v4",
+    "installer:v4": "pwsh -Command \"$env:RECIBOX_BUILD_DIR='desktop-build-v4\\win-unpacked'; $env:RECIBOX_INSTALLER_OUT_DIR='desktop-build-v4\\installer'; & 'scripts\\build-installer.ps1'\"",
+    "dist:v4": "npm run build:v4 && npm run installer:v4",
     "dist": "npm run build && pwsh -File scripts\\build-installer.ps1",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit"

@@ -20,6 +20,11 @@ export type Supplier = {
   pix: string | null
 }
 
+export type Obra = {
+  id: string
+  nome: string
+}
+
 export type Payment = {
   id: string
   fornecedor_id: string

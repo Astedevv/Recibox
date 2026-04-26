@@ -91,66 +91,138 @@ export function HistoryPage() {
     alert('Mensagem copiada para WhatsApp.')
   }
 
+  const StatusBadge = ({ status }: { status: string }) => {
+    const isPendente = status === 'pendente'
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-[600] ${isPendente ? 'bg-warning-bg text-warning' : 'bg-success-bg text-success'}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isPendente ? 'bg-warning' : 'bg-success'}`}></span>
+        {status.toUpperCase()}
+      </span>
+    )
+  }
+
   return (
-    <div className="space-y-5">
-      <h2 className="text-3xl font-bold">Histórico</h2>
-      <div className="glass grid grid-cols-4 gap-3 rounded-2xl p-4">
-        <select className="rounded-xl border px-3 py-2" value={filters.fornecedor} onChange={(e) => setFilters((f) => ({ ...f, fornecedor: e.target.value }))}>
-          <option value="">Fornecedor</option>
-          {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-        </select>
-        <select className="rounded-xl border px-3 py-2" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
-          <option value="">Status</option>
-          <option value="pendente">Pendente</option>
-          <option value="confirmado">Confirmado</option>
-        </select>
-        <input className="rounded-xl border px-3 py-2" type="date" value={filters.inicio} onChange={(e) => setFilters((f) => ({ ...f, inicio: e.target.value }))} />
-        <input className="rounded-xl border px-3 py-2" type="date" value={filters.fim} onChange={(e) => setFilters((f) => ({ ...f, fim: e.target.value }))} />
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-white">Histórico</h1>
+        <p className="mt-1 text-text-muted text-[13px]">Acompanhe todos os pagamentos e comprovantes emitidos.</p>
       </div>
-      <div className="glass overflow-hidden rounded-2xl">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Data</th>
-              <th className="px-4 py-3 text-left">Fornecedor</th>
-              <th className="px-4 py-3 text-left">Valor</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Confirmado em</th>
-              <th className="px-4 py-3 text-left">Assinatura</th>
-              <th className="px-4 py-3 text-left">Recibo</th>
-              <th className="px-4 py-3 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="px-4 py-3">{p.data_pagamento}</td>
-                <td className="px-4 py-3">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</td>
-                <td className="px-4 py-3">{currencyBRL(Number(p.valor))}</td>
-                <td className="px-4 py-3">{p.status}</td>
-                <td className="px-4 py-3">{datetimeBR(p.confirmation_date)}</td>
-                <td className="px-4 py-3 text-xs">
-                  {p.confirmation_signature ? (
-                    <>
-                      <div className="font-semibold">{p.confirmation_signature}</div>
-                      <div>{p.confirmation_signer_name ?? '-'}</div>
-                      <div>{p.confirmation_signer_document ?? '-'}</div>
-                    </>
-                  ) : '—'}
-                </td>
-                <td className="px-4 py-3">
-                  {p.pdf_url ? <a className="text-blue-600" href={p.pdf_url} target="_blank" rel="noreferrer">Baixar PDF</a> : '—'}
-                </td>
-                <td className="space-x-2 px-4 py-3">
-                  <button className="rounded bg-amber-500 px-2 py-1 text-xs text-white" onClick={() => resendByEmail(p)}>E-mail</button>
-                  <button className="rounded bg-emerald-600 px-2 py-1 text-xs text-white" onClick={() => copyWhatsapp(p)}>WhatsApp</button>
-                  {p.share_link ? <a className="text-xs text-blue-600" href={p.share_link} target="_blank" rel="noreferrer">Ver link</a> : null}
-                </td>
+
+      <div className="bg-surface border border-border shadow-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 rounded-[12px] p-5">
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Fornecedor</label>
+          <select className="input-field" value={filters.fornecedor} onChange={(e) => setFilters((f) => ({ ...f, fornecedor: e.target.value }))}>
+            <option value="">Todos</option>
+            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Status</label>
+          <select className="input-field" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Data Início</label>
+          <input className="input-field" type="date" value={filters.inicio} onChange={(e) => setFilters((f) => ({ ...f, inicio: e.target.value }))} />
+        </div>
+        <div>
+          <label className="block text-[12px] text-text-muted mb-1 font-[500]">Data Fim</label>
+          <input className="input-field" type="date" value={filters.fim} onChange={(e) => setFilters((f) => ({ ...f, fim: e.target.value }))} />
+        </div>
+      </div>
+
+      <div className="bg-surface border border-border shadow-card overflow-hidden rounded-[12px]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr>
+                <th className="table-header px-5 py-4">Data</th>
+                <th className="table-header px-5 py-4">Fornecedor</th>
+                <th className="table-header px-5 py-4">Valor</th>
+                <th className="table-header px-5 py-4">Status</th>
+                <th className="table-header px-5 py-4">Assinatura / Recibo</th>
+                <th className="table-header px-5 py-4 text-right">Ações</th>
               </tr>
-            ))}
-            {!filtered.length ? <tr><td className="px-4 py-6 text-slate-500" colSpan={8}>Sem resultados.</td></tr> : null}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => (
+                <tr key={p.id} className="group hover:bg-surface-hover transition-colors">
+                  <td className="px-5 py-4 text-[13px] text-text-secondary">{p.data_pagamento}</td>
+                  <td className="px-5 py-4">
+                    <span className="text-white font-[500] text-[13px]">{suppliersById[p.fornecedor_id]?.nome ?? '-'}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-money">{currencyBRL(Number(p.valor))}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={p.status} />
+                    {p.status === 'confirmado' && (
+                      <div className="text-[10px] text-text-muted mt-1" title={datetimeBR(p.confirmation_date)}>
+                        Em {datetimeBR(p.confirmation_date).split(' ')[0]}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-[12px]">
+                    {p.confirmation_signature ? (
+                      <div className="text-text-secondary">
+                        <div className="font-[600] text-success truncate max-w-[150px]" title={p.confirmation_signature}>{p.confirmation_signature}</div>
+                        <div className="text-[11px] text-text-muted mt-0.5">{p.confirmation_signer_name ?? '-'}</div>
+                      </div>
+                    ) : (
+                      <span className="text-text-muted italic">Pendente</span>
+                    )}
+                    {p.pdf_url && (
+                      <a className="mt-2 text-accent hover:text-accent-hover flex items-center gap-1 font-[500]" href={p.pdf_url} target="_blank" rel="noreferrer">
+                        <span className="material-icons-round text-[14px]">picture_as_pdf</span>
+                        Ver Recibo
+                      </a>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        title="WhatsApp"
+                        className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-accent hover:bg-accent-glow flex items-center justify-center transition-colors"
+                        onClick={() => copyWhatsapp(p)}
+                      >
+                        <span className="material-icons-round text-[16px]">chat</span>
+                      </button>
+                      <button 
+                        title="E-mail"
+                        className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-blue-400 hover:bg-blue-400/10 flex items-center justify-center transition-colors"
+                        onClick={() => resendByEmail(p)}
+                      >
+                        <span className="material-icons-round text-[16px]">mail</span>
+                      </button>
+                      {p.share_link && (
+                        <a 
+                          title="Abrir Link"
+                          className="w-8 h-8 rounded-sm bg-primary-light text-text-secondary hover:text-white hover:bg-surface flex items-center justify-center transition-colors" 
+                          href={p.share_link} 
+                          target="_blank" 
+                          rel="noreferrer"
+                        >
+                          <span className="material-icons-round text-[16px]">open_in_new</span>
+                        </a>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!filtered.length && (
+                <tr>
+                  <td className="px-5 py-12 text-center text-text-muted text-[13px]" colSpan={6}>
+                    <span className="material-icons-round text-[32px] text-primary-lighter block mb-2">history_toggle_off</span>
+                    Nenhum histórico encontrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
